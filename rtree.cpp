@@ -155,6 +155,8 @@ struct Polygon : public SpatialObj{
             cout << "(" << p.x << "," << p.y << ") ";
         }
         cout << "}";
+        // Print MBB
+        cout << " #"; box.display();
     }
 
     int getHighX() override {
