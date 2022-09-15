@@ -1,6 +1,6 @@
 build:
-	g++ rtree.cpp -o rtree
+	g++ rtree.cpp -o rtree.out
 run: build
-	./rtree
+	./rtree.out
 clean:
-	rm rtree
+	rm rtree.out
