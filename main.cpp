@@ -116,8 +116,8 @@ int main(int argc, char** argv)
 
                             // rt.show_rtree();
                             
-                            points_for_polygon.clear();
-                       }
+                        }
+                        points_for_polygon.clear();
                         mode = Mode::insert_points;
                     }
 
