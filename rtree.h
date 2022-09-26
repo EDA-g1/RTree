@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
-#define M 10 
-#define m 4 
+#define M 4 
+#define m 2 
 #define heuristica 0 
 
 
@@ -19,6 +19,8 @@ struct SpatialObj;
 struct Point;
 struct Polygon;
 struct MBB;
+
+enum class Status {mbb,leaf_mbb,point,polygon};
 
 
 struct SpatialObj {
@@ -178,8 +180,8 @@ struct Node{
     Node* parent= nullptr;
     vector<Node*> children;
     SpatialObj* obj= nullptr;
-    bool is_leaf=false;
     bool is_root=false;
+    Status status;
 
     bool is_overflown() const {
         return this->children.size() > M;
@@ -220,18 +222,20 @@ struct Node{
 
 
 
-Node * insert(Node*& u, SpatialObj* p);
+Node * insert(Node*& u, SpatialObj* p,Status _status);
 Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
 
-Node * insert(Node*& u, SpatialObj* p){
-    if(u->is_leaf){
+double c ;
+Node * insert(Node*& u, SpatialObj* p,Status _status){
+    if(u->status == Status::leaf_mbb){
         // Add p to u
         Node* new_node = new Node;
         new_node->obj = p;
-        new_node->is_leaf = true;
+        new_node->status = _status;
         u->set_as_children(new_node);
+
         // If u overflows, then handle
         if(u->is_overflown()){
             return handle_overflow(u);
@@ -242,19 +246,20 @@ Node * insert(Node*& u, SpatialObj* p){
     }else{
         // Descide which subtree under u should we insert p into
         Node* v = choose_subtree(u,p);
-        return insert(v,p);
+        return insert(v,p,_status);
     }
 }
+
 
 Node* handle_overflow(Node*& u) {
     Node* v = split(u); // u is left, v is right
     if (u->is_root) {
         // Create new root with u and v as children
         Node* new_root = new Node;
-        new_root->is_root= true;
-        new_root->is_leaf= false;
-        new_root->parent= nullptr;
-        u->is_root= false;
+        new_root->is_root = true;
+        new_root->status = Status::mbb;
+        new_root->parent = nullptr;
+        // u->is_root= false;
         new_root->set_as_children(u);
         new_root->set_as_children(v);
         return new_root;
@@ -307,11 +312,17 @@ Node* choose_subtree(Node*& u,SpatialObj* sobj){
     return return_node;
 }
 
+
+Node *sa,*sb;
+
 Node* split(Node*& u){
     // Elegir las dos semillas tal que esten lo más separadas posible
     Node* sem_a = nullptr;
     Node* sem_b = nullptr;
-    double max_d = numeric_limits<double>::min();
+    double max_d = numeric_limits<double>::lowest();
+    /* c = 1; */
+    /* sem_a->is_root = 1; */
+
     for (int i = 0; i < u->children.size(); ++i) {
         Node* a = u->children[i];
         for (int j = i+1; j < u->children.size(); ++j) {
@@ -326,16 +337,18 @@ Node* split(Node*& u){
     }
     // Inicializar nuevos u y v
     Node* new_u = new Node;
-    new_u->is_root = u->is_root;
-    new_u->is_leaf = u->is_leaf;
+    // new_u->is_root = false;
+    new_u->status = u->status;
     new_u->parent = u->parent;
+    new_u->is_root = u->is_root;
     new_u->set_as_children(sem_a);
     Node* v = new Node;
     v->is_root = false;
-    v->is_leaf = u->is_leaf;
+    v->status = u->status;
     v->set_as_children(sem_b);
+
     // Insertar al que menor ampliación requiera
-    
+
     for (auto &child : u->children) {
         if (child != sem_a && child != sem_b) {
             double increase_u = ((MBB*)u->obj)->requiredMBBIncrease(child->obj);
@@ -367,6 +380,8 @@ Node* split(Node*& u){
     }
     delete tmp;
 
+
+
     return  v;
 }
 
@@ -382,8 +397,10 @@ void show(Node* node, string prefix){
     cout << " (" << node->obj->getHighX() << "," << node->obj->getHighY() << ") ";
     cout << "[children = " << node->children.size() << "]" << endl;
     prefix += "\t";
-    if (node->is_leaf) {
+    if (node->status == Status::leaf_mbb) {
         for (auto &child: node->children) {
+            // if(child->status == Status::polygon)
+                // cout<<"SIIII SOY UN POLIGONO"<<endl;
             cout << prefix;
             child->obj->display();
             cout << endl;
@@ -406,13 +423,13 @@ public:
     RTree() {
         root = new Node;
         root->is_root= true;
-        root->is_leaf= true;
+        root->status= Status::leaf_mbb;
         root->parent= nullptr;
     }
 
-    void insert_spatialobj(SpatialObj* sobj) {
+    void insert_spatialobj(SpatialObj* sobj,Status _status) {
         Node* new_root;
-        new_root = insert(root, sobj);
+        new_root = insert(root, sobj,_status);
         if (new_root) {
             root = new_root;
         }
@@ -421,33 +438,10 @@ public:
     void show_rtree() {
         show(root,"");
     }
+
+
+    Node* get_root(){
+        return root;
+    }
+
 };
-
-int main(){
-    RTree rt;
-
-    rt.insert_spatialobj(new Point(1,1));
-    rt.insert_spatialobj( new Point(1,2));
-    rt.insert_spatialobj( new Point(1,3));
-    rt.insert_spatialobj( new Point(1,4));
-    rt.insert_spatialobj( new Point(15,15));
-    rt.insert_spatialobj( new Point(15,15));
-    rt.insert_spatialobj(new Point(50,61));
-    rt.insert_spatialobj( new Point(25,82));
-    rt.insert_spatialobj( new Point(40,32));
-    rt.insert_spatialobj( new Point(27,8));
-    rt.insert_spatialobj( new Point(10,6));
-    rt.insert_spatialobj( new Point(99,81));
-    rt.insert_spatialobj( new Point(99,82));
-    rt.insert_spatialobj( new Point(21,82));
-    rt.insert_spatialobj( new Point(20,82));
-    rt.insert_spatialobj( new Point(18,82));
-    rt.insert_spatialobj( new Point(19,82));
-    vector<Point> pol1;
-    pol1.push_back(Point(1,1));
-    pol1.push_back(Point(1,3));
-    pol1.push_back(Point(2,2));
-    rt.insert_spatialobj( new Polygon(pol1));
-    rt.show_rtree();
-    return 0;
-}
