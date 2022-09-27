@@ -187,6 +187,23 @@ struct Node{
         return this->children.size() > M;
     }
 
+    void adjustMBB() {
+        MBB* mbb = (MBB*) obj;
+        int max_y = 0, max_x = 0, min_y = numeric_limits<int>::max(), min_x = numeric_limits<int>::max();
+
+        for (auto &c: this->children) {
+            max_y = max(c->obj->getHighY(), max_y);
+            max_x = max(c->obj->getHighX(), max_x);
+            min_x = min(c->obj->getLowX(), min_x);
+            min_y = min(c->obj->getLowY(), min_y);
+        }
+
+        mbb->low.x = max(mbb->low.x, min_x);
+        mbb->low.y = max(mbb->low.y, min_y);
+        mbb->high.x = min(mbb->high.x, max_x);
+        mbb->high.y = min(mbb->high.y, max_y);
+    }
+
     void updateMBB(Node* u) const {
         MBB* mbb = (MBB*) obj;
         mbb->low.x = min(u->obj->getLowX(), mbb->low.x);
@@ -217,15 +234,35 @@ struct Node{
         // Insert
         this->children.push_back(u);
     }
+
+    bool operator==(Node* other) {
+        return ((this->obj->getLowX() == other->obj->getLowX())
+                && (this->obj->getLowY() == other->obj->getLowY())
+                && (this->obj->getHighX() == other->obj->getHighX())
+                && (this->obj->getHighY() == other->obj->getHighY())
+                );
+    }
 };
 
-
+void printNode(vector<Node*> v) {
+    for (auto &node: v) {
+        node->obj->display();
+    }
+    cout << endl;
+}
 
 
 Node * insert(Node*& u, SpatialObj* p,Status _status);
 Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
+
+vector<Node*> remove(Node* &u, SpatialObj* p);
+vector<Node*> condenseTree(Node* &u);
+void getLeaves(vector<Node*> &v, Node* &u);
+bool contains(Node* u, SpatialObj* p);
+void eraseNode(vector<Node*> &v, Node* &n);
+bool eraseObject(vector<Node*> &v, SpatialObj* p);
 
 Node * insert(Node*& u, SpatialObj* p,Status _status){
     if(u->status == Status::leaf_mbb){
@@ -247,6 +284,74 @@ Node * insert(Node*& u, SpatialObj* p,Status _status){
         Node* v = choose_subtree(u,p);
         return insert(v,p,_status);
     }
+}
+
+vector<Node*> remove(Node* &u, SpatialObj* p) {
+    if (u->status == Status::leaf_mbb) {
+        eraseObject(u->children, p);
+        return condenseTree(u);
+    } else {
+        Node* v = choose_subtree(u, p);
+        return remove(v, p);
+    }
+}
+
+void eraseNode(vector<Node*> &v, Node* &n) {
+        int pos = -1;
+        for (int i = 0; i < v.size(); i++) {
+            if (v[i] == n) pos = i;
+        }
+        v.erase(v.begin() + pos);
+}
+
+bool eraseObject(vector<Node*> &v, SpatialObj* p) {
+    int pos = -1;
+    for (int i = 0; i < v.size(); i++) {
+        if (contains(v[i], p)) { // encontrar primer nodo contenido por el objeto p
+            pos = i;
+            break;
+        }
+    }
+    if (pos == -1) return false;
+
+    v.erase(v.begin() + pos);
+    return true;
+}
+
+vector<Node*> condenseTree(Node* &u) {
+    Node* n = u;
+    vector<Node*> Q; // vector con puntos a reinsertar
+    while (!n->is_root) {
+        if (n->children.size() < m) {
+            getLeaves(Q, n); // conseguir nodos a reinsertar
+
+            Node* p = n->parent;
+            eraseNode(p->children, n); // eliminar nodo
+        }
+        n->adjustMBB(); // ajustar mbb con nuevos limites
+        n = n->parent;
+    }
+    n->adjustMBB(); // ajustar raiz
+    return Q;
+}
+
+void getLeaves(vector<Node*> &q, Node* &u) {
+    if (u->status == Status::leaf_mbb) {
+        // agregar nodos por reinseratar a vector Q
+        for (auto &p: u->children) q.push_back(p);
+    } else {
+        for (auto &c: u->children) getLeaves(q, c);
+    }
+}
+
+bool contains(Node* u, SpatialObj* click) {
+    // ver si un nodo contiene al spatial object
+    // confirmar que significa contener un objeto
+    SpatialObj* obj = u->obj;
+    return ((obj->getLowX() <= click->getLowX() && click->getLowX() <= obj->getHighX())
+            && (obj->getLowX() <= click->getHighX() && click->getHighX() <= obj->getHighX())
+            && (obj->getLowY() <= click->getLowY() && click->getLowY() <= obj->getHighY())
+            && (obj->getLowY() <= click->getHighY() && click->getHighY() <= obj->getHighY()));
 }
 
 
@@ -424,6 +529,16 @@ public:
         new_root = insert(root, sobj,_status);
         if (new_root) {
             root = new_root;
+        }
+        //show_rtree();
+    }
+
+    bool remove_spatialobj(SpatialObj* sobj) {
+        // eliminar punto y reinsertar nodos que hicieron underflow
+        vector<Node*> Q = remove(root, sobj);
+
+        for (auto &node: Q) {
+            insert_spatialobj(node->obj, node->status);
         }
     }
 

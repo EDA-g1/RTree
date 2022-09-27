@@ -92,6 +92,7 @@ int main(int argc, char** argv)
     vector<Point> points_for_polygon;
     vector<Vertex*> knn_lines;
     Mode mode = Mode::insert_points;
+
     
     while (window.isOpen())
     {
@@ -157,7 +158,7 @@ int main(int argc, char** argv)
                             y_n = n->obj->getHighY();
                         }
 
-                        n->obj->display();
+                        // n->obj->display();
                         Vertex* new_line = new Vertex[2]{Vector2f(x_n,length - y_n),Vector2f(x,length-y)};
                         new_line[0].color = Color::Yellow;
                         new_line[1].color = Color::Yellow;
