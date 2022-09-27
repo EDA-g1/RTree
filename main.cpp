@@ -91,6 +91,7 @@ int main(int argc, char** argv)
     vector<ConvexShape> polygons;
     vector<Point> points_for_polygon;
     Mode mode = Mode::insert_points;
+
     
     while (window.isOpen())
     {

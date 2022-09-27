@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include "rtree.h"
 #define loop(a, b) for (int a = 0; a < b; ++a)
 //#define is_on_local_machine 1
 using namespace std;
@@ -10,8 +11,18 @@ int main(){
 	cin.tie(nullptr);
 	cout.tie(nullptr);
 
-	double max_d = numeric_limits<double>::lowest();
-	cout<<max_d;
+	RTree tree;
+
+	tree.insert_spatialobj(new Point(2, 0), Status::point);
+	tree.insert_spatialobj(new Point(3, 0), Status::point);
+	tree.insert_spatialobj(new Point(5, 5), Status::point);
+	tree.insert_spatialobj(new Point(4, 4), Status::point);
+	tree.insert_spatialobj(new Point(6, 4), Status::point);
+	tree.insert_spatialobj(new Point(3, 1), Status::point);
+	tree.show_rtree();
+
+	tree.remove_spatialobj(new Point(5, 5));
+	tree.show_rtree();
 
 	return 0;
 
