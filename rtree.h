@@ -1,4 +1,5 @@
 #include <iostream>
+#include <queue>
 #include <utility>
 #include <vector>
 #include <algorithm>
@@ -20,7 +21,7 @@ struct Point;
 struct Polygon;
 struct MBB;
 
-enum class Status {mbb,leaf_mbb,point,polygon};
+enum Status {mbb,leaf_mbb,point,polygon};
 
 
 struct SpatialObj {
@@ -442,6 +443,74 @@ public:
 
     Node* get_root(){
         return root;
+    }
+
+    vector<Node*> knn(SpatialObj* source, int n){
+
+        priority_queue<pair<int,Node*>> pq;
+        // unordered_map<Node*,bool> visited;
+        pq.push({-root->obj->getDistanceTo(source),root});
+        vector<Node*> result;
+
+        // if(root->status == Status::mbb)
+            // cout<<"iwi"<<endl;
+        // cout<<root->status<<endl;
+        // root->obj->display();
+        // cout<<endl;
+        // return result;
+
+        while(!pq.empty()) {
+            pair<int,Node*> front = pq.top();
+            // cout<<endl;
+            // front.second->obj->display();
+
+
+            if(front.second->status == Status::mbb || front.second->status == Status::leaf_mbb){
+                // front.second->obj->display();
+                // cout<<endl;
+                pq.pop();
+
+            }
+
+
+            // cout<<"\n\nhijos:\n\n\n";
+            for(auto&c : front.second->children){
+                // if(!visited[c]){
+                pq.push({-c->obj->getDistanceTo(source),c});
+                // c->obj->display();
+                // }
+                
+
+            }
+
+            vector<pair<int,Node*>> fix;
+            for(int i = 0; i < n && !pq.empty(); ++i){
+                pair<int,Node*> del = pq.top();
+                if(del.second->status == Status::point || del.second->status == Status::polygon){
+                    result.push_back(del.second);
+                    if(result.size() == n)
+                        return result;
+                }
+                else
+                    fix.push_back(del);
+                pq.pop();
+            }
+
+            if(result.size() == n){
+                return result;
+            }else{
+                // cout<<endl<<last_size<<endl;
+                // cout<<result.size();
+                for(auto&f : fix){
+                    pq.push(f);
+
+                }
+            }
+            
+            
+            
+        }
+        return result;
     }
 
 };
