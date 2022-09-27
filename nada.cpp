@@ -21,7 +21,9 @@ int main(){
 	tree.insert_spatialobj(new Point(3, 1), Status::point);
 	tree.show_rtree();
 
-	tree.remove_spatialobj(new Point(5, 5));
+	tree.remove_spatialobj(new Point(4, 4));
+	tree.remove_spatialobj(new Point(3, 1));
+	tree.remove_spatialobj(new Point(3, 0));
 	tree.show_rtree();
 
 	return 0;

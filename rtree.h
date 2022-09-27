@@ -261,6 +261,8 @@ vector<Node*> remove(Node* &u, SpatialObj* p);
 vector<Node*> condenseTree(Node* &u);
 void getLeaves(vector<Node*> &v, Node* &u);
 bool contains(Node* u, SpatialObj* p);
+void eraseNode(vector<Node*> &v, Node* &n);
+bool eraseObject(vector<Node*> &v, SpatialObj* p);
 
 double c ;
 Node * insert(Node*& u, SpatialObj* p,Status _status){
@@ -287,29 +289,34 @@ Node * insert(Node*& u, SpatialObj* p,Status _status){
 
 vector<Node*> remove(Node* &u, SpatialObj* p) {
     if (u->status == Status::leaf_mbb) {
-        Node* to_del = nullptr;
-        int pos = -1;
-
-        for (int i = 0; i < u->children.size(); i++) {
-            if (contains(u->children[i], p)) {
-                to_del = u->children[i];
-                pos = i;
-                break;
-            }
-        }
-
-        if (!to_del) return vector<Node*>();
-
-        u->children.erase(u->children.begin() + pos);
-
+        eraseObject(u->children, p);
         return condenseTree(u);
-        // if (u->children.size() < m) {
-        //     handle_underflow(u);
-        // } else u->condenseMBB();
     } else {
         Node* v = choose_subtree(u, p);
         return remove(v, p);
     }
+}
+
+void eraseNode(vector<Node*> &v, Node* &n) {
+        int pos = -1;
+        for (int i = 0; i < v.size(); i++) {
+            if (v[i] == n) pos = i;
+        }
+        v.erase(v.begin() + pos);
+}
+
+bool eraseObject(vector<Node*> &v, SpatialObj* p) {
+    int pos = -1;
+    for (int i = 0; i < v.size(); i++) {
+        if (contains(v[i], p)) { // encontrar primer nodo contenido por el objeto p
+            pos = i;
+            break;
+        }
+    }
+    if (pos == -1) return false;
+
+    v.erase(v.begin() + pos);
+    return true;
 }
 
 vector<Node*> condenseTree(Node* &u) {
@@ -317,17 +324,10 @@ vector<Node*> condenseTree(Node* &u) {
     vector<Node*> Q; // vector con puntos a reinsertar
     while (!n->is_root) {
         if (n->children.size() < m) {
-            // handle underflow
             getLeaves(Q, n); // conseguir nodos a reinsertar
 
-            // eliminar nodo
             Node* p = n->parent;
-
-            int pos = -1;
-            for (int i = 0; i < p->children.size(); i++) {
-                if (p->children[i] == n) pos = i;
-            }
-            p->children.erase(p->children.begin() + pos);
+            eraseNode(p->children, n); // eliminar nodo
         }
         n->adjustMBB(); // ajustar mbb con nuevos limites
         n = n->parent;
