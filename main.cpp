@@ -10,7 +10,7 @@ using namespace sf;
 
 
 vector<Color> clrs = {Color::Red,Color::Green,Color::Blue,Color::Yellow,Color::Magenta,Color::Cyan};
-enum class Mode {insert_points,insert_polygon};
+enum class Mode {insert_points,insert_polygon,delete_obj};
 
 
 CircleShape create_point(float x, float y){
@@ -113,6 +113,7 @@ int main(int argc, char** argv)
 
                             rectangles.clear();
                             polygons.clear();
+                            knn_lines.clear();
 
                             create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
 
@@ -121,7 +122,17 @@ int main(int argc, char** argv)
                         mode = Mode::insert_points;
                     }
 
+                }else if(event.key.code == sf::Keyboard::Key::LShift && mode != Mode::insert_polygon){
+                    mode = Mode::delete_obj;
+                    cout<<"MODO: eliminar objeto"<<endl;
                 }
+            }
+            else if(event.type == sf::Event::KeyReleased){
+                if(event.key.code == sf::Keyboard::Key::LShift && mode == Mode::delete_obj){
+                    mode = Mode::insert_points;
+                    cout<<"MODO: insertar objeto"<<endl;
+                }
+ 
             }
             else if(event.type == sf::Event::MouseButtonPressed){
                 float x = event.mouseButton.x;
@@ -131,23 +142,54 @@ int main(int argc, char** argv)
                     if(mode == Mode::insert_points){
                         rt.insert_spatialobj(new Point(x, y),Status::point);
 
+                        //TODO: handle garbage  
                         rectangles.clear();
                         points.clear();
                         polygons.clear();
+                        knn_lines.clear();
 
                         create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
                     }else if(mode == Mode::insert_polygon){
                         points_for_polygon.push_back(Point(x, y));
+                    }else if(mode == Mode::delete_obj){
+                        vector<Point> pts;
+                        int rad = 7;
+                        pts.push_back({(int) x-rad,(int) y-rad});
+                        pts.push_back({(int) x+rad,(int) y-rad});
+                        pts.push_back({(int) x+rad,(int) y+rad});
+                        pts.push_back({(int) x-rad,(int) y+rad});
+                        Point* click = new Point(x,y);
+                        Polygon* click_box = new Polygon(pts);
+                        // p->display();
+                        rt.remove_spatialobj(click,click_box);
+
+                        rectangles.clear();
+                        points.clear();
+                        polygons.clear();
+                        knn_lines.clear();
+                        // polygons.push_back(create_polygon(click_box,length));
+
+                        create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
+                        delete click;
+                        delete click_box;
+
                     }
                 }else{
-                    auto result = rt.knn(new Point(x,y),3); 
+                    Point* pnt = new Point(x,y);
+                    auto result = rt.knn(pnt,3); 
+
 
                     for(auto&n : knn_lines)
                         delete[] n;
                     
                     knn_lines.clear();
+
+                    cout<<endl<<endl<<endl;
                     
                     for(auto n: result){
+                        n->obj->display();
+
+                        cout<<endl<<"Distancia: "<<pnt->getDistanceTo(n->obj)<<endl;
                         int x_n,y_n;
                         if(n->status == Status::polygon){
                             x_n = (n->obj->getHighX() +  n->obj->getLowX())/2;
@@ -167,6 +209,8 @@ int main(int argc, char** argv)
                     }
 
                 }
+
+                rt.show_rtree();
 
             }
         }

@@ -32,17 +32,27 @@ struct SpatialObj {
 
     virtual void display() = 0;
 
-    double getDistanceTo(SpatialObj* obj) {
-        int delta_x = min(
-                abs(this->getHighX() - obj->getLowX()),
-                abs(this->getLowX() - obj->getHighX())
-        );
-        int delta_y = min(
-                abs(this->getHighY() - obj->getLowY()),
-                abs(this->getLowY() - obj->getHighY())
-        );
+    double intersection(SpatialObj* other){
+        double base = max(min(getHighX(),other->getHighX()) - max(getLowX(),other->getLowX()) ,0);
+        double height = max(min(getHighY(),other->getHighY()) - max(getLowY(),other->getLowY()) ,0);
+
+        return base*height;
+    }
+
+
+    double getDistanceTo(SpatialObj* other) {
+        int delta_x = max(max(getLowX(),other->getLowX()) - min(getHighX(),other->getHighX()) ,0);
+        int delta_y = max(max(getLowY(),other->getLowY()) - min(getHighY(),other->getHighY()) ,0);
+        // int delta_y = min(
+        //         abs(this->getHighY() - obj->getLowY()),
+        //         abs(this->getLowY() - obj->getHighY())
+        // );
         return sqrt(pow(delta_x,2)+ pow(delta_y,2));
     }
+
+
+
+
 };
 
 struct Point : public SpatialObj{
@@ -257,10 +267,10 @@ Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
 
-vector<Node*> remove(Node* &u, SpatialObj* p);
-vector<Node*> condenseTree(Node* &u);
+vector<Node*> remove(SpatialObj* p);
+vector<Node*> condenseTree(Node* u);
 void getLeaves(vector<Node*> &v, Node* &u);
-bool contains(Node* u, SpatialObj* p);
+bool contains(SpatialObj* u, SpatialObj* p);
 void eraseNode(vector<Node*> &v, Node* &n);
 bool eraseObject(vector<Node*> &v, SpatialObj* p);
 
@@ -286,15 +296,18 @@ Node * insert(Node*& u, SpatialObj* p,Status _status){
     }
 }
 
-vector<Node*> remove(Node* &u, SpatialObj* p) {
-    if (u->status == Status::leaf_mbb) {
-        eraseObject(u->children, p);
-        return condenseTree(u);
-    } else {
-        Node* v = choose_subtree(u, p);
-        return remove(v, p);
-    }
-}
+// vector<Node*> remove(Node*& u,SpatialObj* p) {
+    // if (u->status == Status::leaf_mbb) {
+        // cout<<"llegue a una hoja";
+    // if(p != nullptr){
+    // eraseObject(u->children, p);
+        // return condenseTree(u);
+    // }
+    // } else {
+        // Node* v = choose_subtree(u, p);
+        // return remove(v, p);
+    // }
+// }
 
 void eraseNode(vector<Node*> &v, Node* &n) {
         int pos = -1;
@@ -304,35 +317,23 @@ void eraseNode(vector<Node*> &v, Node* &n) {
         v.erase(v.begin() + pos);
 }
 
+
 bool eraseObject(vector<Node*> &v, SpatialObj* p) {
     int pos = -1;
     for (int i = 0; i < v.size(); i++) {
-        if (contains(v[i], p)) { // encontrar primer nodo contenido por el objeto p
-            pos = i;
-            break;
+        // v[i]->obj->display();
+        // cout<<endl;
+        // encontrar primer nodo contenido por el objeto p 
+        if(v[i]->obj == p){ 
+                pos = i;
+                break;
         }
+        
     }
     if (pos == -1) return false;
 
     v.erase(v.begin() + pos);
     return true;
-}
-
-vector<Node*> condenseTree(Node* &u) {
-    Node* n = u;
-    vector<Node*> Q; // vector con puntos a reinsertar
-    while (!n->is_root) {
-        if (n->children.size() < m) {
-            getLeaves(Q, n); // conseguir nodos a reinsertar
-
-            Node* p = n->parent;
-            eraseNode(p->children, n); // eliminar nodo
-        }
-        n->adjustMBB(); // ajustar mbb con nuevos limites
-        n = n->parent;
-    }
-    n->adjustMBB(); // ajustar raiz
-    return Q;
 }
 
 void getLeaves(vector<Node*> &q, Node* &u) {
@@ -344,14 +345,13 @@ void getLeaves(vector<Node*> &q, Node* &u) {
     }
 }
 
-bool contains(Node* u, SpatialObj* click) {
+bool contains(SpatialObj* obj, SpatialObj* other) {
     // ver si un nodo contiene al spatial object
     // confirmar que significa contener un objeto
-    SpatialObj* obj = u->obj;
-    return ((obj->getLowX() <= click->getLowX() && click->getLowX() <= obj->getHighX())
-            && (obj->getLowX() <= click->getHighX() && click->getHighX() <= obj->getHighX())
-            && (obj->getLowY() <= click->getLowY() && click->getLowY() <= obj->getHighY())
-            && (obj->getLowY() <= click->getHighY() && click->getHighY() <= obj->getHighY()));
+    return ((obj->getLowX() <= other->getLowX() && other->getLowX() <= obj->getHighX())
+            && (obj->getLowX() <= other->getHighX() && other->getHighX() <= obj->getHighX())
+            && (obj->getLowY() <= other->getLowY() && other->getLowY() <= obj->getHighY())
+            && (obj->getLowY() <= other->getHighY() && other->getHighY() <= obj->getHighY()));
 }
 
 
@@ -533,14 +533,7 @@ public:
         //show_rtree();
     }
 
-    bool remove_spatialobj(SpatialObj* sobj) {
-        // eliminar punto y reinsertar nodos que hicieron underflow
-        vector<Node*> Q = remove(root, sobj);
 
-        for (auto &node: Q) {
-            insert_spatialobj(node->obj, node->status);
-        }
-    }
 
     void show_rtree() {
         show(root,"");
@@ -555,19 +548,23 @@ public:
         if(root->obj == nullptr)
             return vector<Node*>{};
 
-        priority_queue<pair<int,Node*>> pq;
-        pq.push({-root->obj->getDistanceTo(source),root});
+        priority_queue<pair<double,Node*>> pq;
+        pq.push({-source->getDistanceTo(root->obj),root});
         vector<Node*> result;
 
         while(!pq.empty()) {
-            pair<int,Node*> front = pq.top();
-
+            pair<double,Node*> front = pq.top();
+            cout<<"Top:"<<endl;
+            front.second->obj->display();
+            cout<<endl<<"Distancia: "<<front.first<<endl;
 
             if(front.second->status == Status::mbb || front.second->status == Status::leaf_mbb)
                 pq.pop();
 
             for(auto&c : front.second->children){
-                pq.push({-c->obj->getDistanceTo(source),c});
+                c->obj->display();
+                cout<<endl<<source->getDistanceTo(c->obj)<<endl;
+                pq.push({-source->getDistanceTo(c->obj),c});
             }
 
             while(!pq.empty()){
@@ -585,5 +582,62 @@ public:
         }
         return result;
     }
+
+
+    vector<Node*> condenseTree(Node* u) {
+        Node* n = u;
+        // Node* last;
+        vector<Node*> Q; // vector con puntos a reinsertar
+        while(!n->is_root) {
+            if (n->children.size() < m) {
+                getLeaves(Q, n); // conseguir nodos a reinsertar
+
+                Node* p = n->parent;
+                eraseNode(p->children, n); // eliminar nodo
+            }
+            n->adjustMBB(); // ajustar mbb con nuevos limites
+            // last = n;
+            n = n->parent;
+        }
+
+        n->adjustMBB(); // ajustar raiz
+        if(root->status == Status::mbb && root->children.size() == 1){
+            Node* temp = root;
+            root = root->children[0];
+            root->is_root = 1;
+            delete temp;
+
+        }
+        return Q;
+    }
+
+
+
+    void remove_spatialobj(SpatialObj* click,SpatialObj* click_box ) {
+        if(root->obj == nullptr || (root->status == Status::leaf_mbb && root->children.size() == 0))
+            return;
+        // eliminar punto y reinsertar nodos que hicieron underflow
+        Node* supposed_node_to_delete = knn(click,1)[0];
+        cout<<"mostar:\n\n"<<endl;
+        supposed_node_to_delete->obj->display();
+        cout<<endl<<endl;
+
+
+        if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
+            (supposed_node_to_delete->status == Status::point && contains(click_box,supposed_node_to_delete->obj))){ 
+
+            eraseObject(supposed_node_to_delete->parent->children,supposed_node_to_delete->obj);
+
+
+            vector<Node*> Q = condenseTree(supposed_node_to_delete->parent);
+            for (auto &node: Q) {
+                    insert_spatialobj(node->obj, node->status);
+            }
+        }
+
+
+
+
+   }
 
 };
