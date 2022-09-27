@@ -1,4 +1,5 @@
 #include <iostream>
+#include <queue>
 #include <utility>
 #include <vector>
 #include <algorithm>
@@ -31,17 +32,27 @@ struct SpatialObj {
 
     virtual void display() = 0;
 
-    double getDistanceTo(SpatialObj* obj) {
-        int delta_x = min(
-                abs(this->getHighX() - obj->getLowX()),
-                abs(this->getLowX() - obj->getHighX())
-        );
-        int delta_y = min(
-                abs(this->getHighY() - obj->getLowY()),
-                abs(this->getLowY() - obj->getHighY())
-        );
+    double intersection(SpatialObj* other){
+        double base = max(min(getHighX(),other->getHighX()) - max(getLowX(),other->getLowX()) ,0);
+        double height = max(min(getHighY(),other->getHighY()) - max(getLowY(),other->getLowY()) ,0);
+
+        return base*height;
+    }
+
+
+    double getDistanceTo(SpatialObj* other) {
+        int delta_x = max(max(getLowX(),other->getLowX()) - min(getHighX(),other->getHighX()) ,0);
+        int delta_y = max(max(getLowY(),other->getLowY()) - min(getHighY(),other->getHighY()) ,0);
+        // int delta_y = min(
+        //         abs(this->getHighY() - obj->getLowY()),
+        //         abs(this->getLowY() - obj->getHighY())
+        // );
         return sqrt(pow(delta_x,2)+ pow(delta_y,2));
     }
+
+
+
+
 };
 
 struct Point : public SpatialObj{
@@ -102,8 +113,6 @@ struct MBB : public SpatialObj{
     }
 
     double requiredMBBIncrease(SpatialObj* s) const {
-        //TODO: REVISAR - Es respecto a area o perimetro?
-        // La implementacion de aca es asumiendo que es area
         MBB new_mbb(
                 Point(
                         min(s->getLowX(), this->low.x),
@@ -123,6 +132,7 @@ struct MBB : public SpatialObj{
         double old_h = new_mbb.getArea()-this->getArea();
         double new_h = new_perimeter - old_perimeter;
 
+        //heuristic for box expansion
         return  heuristica ? old_h : new_h;
     }
 
@@ -187,6 +197,23 @@ struct Node{
         return this->children.size() > M;
     }
 
+    void adjustMBB() {
+        MBB* mbb = (MBB*) obj;
+        int max_y = 0, max_x = 0, min_y = numeric_limits<int>::max(), min_x = numeric_limits<int>::max();
+
+        for (auto &c: this->children) {
+            max_y = max(c->obj->getHighY(), max_y);
+            max_x = max(c->obj->getHighX(), max_x);
+            min_x = min(c->obj->getLowX(), min_x);
+            min_y = min(c->obj->getLowY(), min_y);
+        }
+
+        mbb->low.x = max(mbb->low.x, min_x);
+        mbb->low.y = max(mbb->low.y, min_y);
+        mbb->high.x = min(mbb->high.x, max_x);
+        mbb->high.y = min(mbb->high.y, max_y);
+    }
+
     void updateMBB(Node* u) const {
         MBB* mbb = (MBB*) obj;
         mbb->low.x = min(u->obj->getLowX(), mbb->low.x);
@@ -217,9 +244,22 @@ struct Node{
         // Insert
         this->children.push_back(u);
     }
+
+    bool operator==(Node* other) {
+        return ((this->obj->getLowX() == other->obj->getLowX())
+                && (this->obj->getLowY() == other->obj->getLowY())
+                && (this->obj->getHighX() == other->obj->getHighX())
+                && (this->obj->getHighY() == other->obj->getHighY())
+                );
+    }
 };
 
-
+void printNode(vector<Node*> v) {
+    for (auto &node: v) {
+        node->obj->display();
+    }
+    cout << endl;
+}
 
 
 Node * insert(Node*& u, SpatialObj* p,Status _status);
@@ -227,7 +267,13 @@ Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
 
-double c ;
+vector<Node*> remove(SpatialObj* p);
+vector<Node*> condenseTree(Node* u);
+void getLeaves(vector<Node*> &v, Node* &u);
+bool contains(SpatialObj* u, SpatialObj* p);
+void eraseNode(vector<Node*> &v, Node* &n);
+bool eraseObject(vector<Node*> &v, SpatialObj* p);
+
 Node * insert(Node*& u, SpatialObj* p,Status _status){
     if(u->status == Status::leaf_mbb){
         // Add p to u
@@ -250,6 +296,64 @@ Node * insert(Node*& u, SpatialObj* p,Status _status){
     }
 }
 
+// vector<Node*> remove(Node*& u,SpatialObj* p) {
+    // if (u->status == Status::leaf_mbb) {
+        // cout<<"llegue a una hoja";
+    // if(p != nullptr){
+    // eraseObject(u->children, p);
+        // return condenseTree(u);
+    // }
+    // } else {
+        // Node* v = choose_subtree(u, p);
+        // return remove(v, p);
+    // }
+// }
+
+void eraseNode(vector<Node*> &v, Node* &n) {
+        int pos = -1;
+        for (int i = 0; i < v.size(); i++) {
+            if (v[i] == n) pos = i;
+        }
+        v.erase(v.begin() + pos);
+}
+
+
+bool eraseObject(vector<Node*> &v, SpatialObj* p) {
+    int pos = -1;
+    for (int i = 0; i < v.size(); i++) {
+        // v[i]->obj->display();
+        // cout<<endl;
+        // encontrar primer nodo contenido por el objeto p 
+        if(v[i]->obj == p){ 
+                pos = i;
+                break;
+        }
+        
+    }
+    if (pos == -1) return false;
+
+    v.erase(v.begin() + pos);
+    return true;
+}
+
+void getLeaves(vector<Node*> &q, Node* &u) {
+    if (u->status == Status::leaf_mbb) {
+        // agregar nodos por reinseratar a vector Q
+        for (auto &p: u->children) q.push_back(p);
+    } else {
+        for (auto &c: u->children) getLeaves(q, c);
+    }
+}
+
+bool contains(SpatialObj* obj, SpatialObj* other) {
+    // ver si un nodo contiene al spatial object
+    // confirmar que significa contener un objeto
+    return ((obj->getLowX() <= other->getLowX() && other->getLowX() <= obj->getHighX())
+            && (obj->getLowX() <= other->getHighX() && other->getHighX() <= obj->getHighX())
+            && (obj->getLowY() <= other->getLowY() && other->getLowY() <= obj->getHighY())
+            && (obj->getLowY() <= other->getHighY() && other->getHighY() <= obj->getHighY()));
+}
+
 
 Node* handle_overflow(Node*& u) {
     Node* v = split(u); // u is left, v is right
@@ -266,7 +370,6 @@ Node* handle_overflow(Node*& u) {
     }
     else {
         Node* w = u->parent;
-        //TODO???: update MBR(u) in w ???
         w->set_as_children(v);
         // If w overflows, then handle
         if (w->is_overflown()) {
@@ -313,15 +416,12 @@ Node* choose_subtree(Node*& u,SpatialObj* sobj){
 }
 
 
-Node *sa,*sb;
 
 Node* split(Node*& u){
     // Elegir las dos semillas tal que esten lo más separadas posible
     Node* sem_a = nullptr;
     Node* sem_b = nullptr;
     double max_d = numeric_limits<double>::lowest();
-    /* c = 1; */
-    /* sem_a->is_root = 1; */
 
     for (int i = 0; i < u->children.size(); ++i) {
         Node* a = u->children[i];
@@ -337,7 +437,6 @@ Node* split(Node*& u){
     }
     // Inicializar nuevos u y v
     Node* new_u = new Node;
-    // new_u->is_root = false;
     new_u->status = u->status;
     new_u->parent = u->parent;
     new_u->is_root = u->is_root;
@@ -399,8 +498,6 @@ void show(Node* node, string prefix){
     prefix += "\t";
     if (node->status == Status::leaf_mbb) {
         for (auto &child: node->children) {
-            // if(child->status == Status::polygon)
-                // cout<<"SIIII SOY UN POLIGONO"<<endl;
             cout << prefix;
             child->obj->display();
             cout << endl;
@@ -433,7 +530,10 @@ public:
         if (new_root) {
             root = new_root;
         }
+        //show_rtree();
     }
+
+
 
     void show_rtree() {
         show(root,"");
@@ -443,5 +543,93 @@ public:
     Node* get_root(){
         return root;
     }
+
+    vector<Node*> knn(SpatialObj* source, int n){
+        if(root->obj == nullptr)
+            return vector<Node*>{};
+
+        priority_queue<pair<double,Node*>> pq;
+        pq.push({-source->getDistanceTo(root->obj),root});
+        vector<Node*> result;
+
+        while(!pq.empty()) {
+            pair<double,Node*> front = pq.top();
+
+            if(front.second->status == Status::mbb || front.second->status == Status::leaf_mbb)
+                pq.pop();
+
+            for(auto&c : front.second->children){
+                pq.push({-source->getDistanceTo(c->obj),c});
+            }
+
+            while(!pq.empty()){
+                pair<int,Node*> del = pq.top();
+                if(del.second->status == Status::point || del.second->status == Status::polygon){
+                    result.push_back(del.second);
+                    if(result.size() == n)
+                        return result;
+                }
+                else
+                    break;
+                pq.pop();
+            }
+
+        }
+        return result;
+    }
+
+
+    vector<Node*> condenseTree(Node* u) {
+        Node* n = u;
+        // Node* last;
+        vector<Node*> Q; // vector con puntos a reinsertar
+        while(!n->is_root) {
+            if (n->children.size() < m) {
+                getLeaves(Q, n); // conseguir nodos a reinsertar
+
+                Node* p = n->parent;
+                eraseNode(p->children, n); // eliminar nodo
+            }
+            n->adjustMBB(); // ajustar mbb con nuevos limites
+            // last = n;
+            n = n->parent;
+        }
+
+        n->adjustMBB(); // ajustar raiz
+        if(root->status == Status::mbb && root->children.size() == 1){
+            Node* temp = root;
+            root = root->children[0];
+            root->is_root = 1;
+            delete temp;
+
+        }
+        return Q;
+    }
+
+
+
+    void remove_spatialobj(SpatialObj* click,SpatialObj* click_box ) {
+        if(root->obj == nullptr || (root->status == Status::leaf_mbb && root->children.size() == 0))
+            return;
+        // eliminar punto y reinsertar nodos que hicieron underflow
+        Node* supposed_node_to_delete = knn(click,1)[0];
+
+
+        if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
+            (supposed_node_to_delete->status == Status::point && contains(click_box,supposed_node_to_delete->obj))){ 
+
+            eraseObject(supposed_node_to_delete->parent->children,supposed_node_to_delete->obj);
+
+
+            vector<Node*> Q = condenseTree(supposed_node_to_delete->parent);
+            for (auto &node: Q) {
+                    insert_spatialobj(node->obj, node->status);
+            }
+        }
+
+
+
+
+   }
 
 };
