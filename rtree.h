@@ -227,7 +227,6 @@ Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
 
-double c ;
 Node * insert(Node*& u, SpatialObj* p,Status _status){
     if(u->status == Status::leaf_mbb){
         // Add p to u
@@ -312,15 +311,12 @@ Node* choose_subtree(Node*& u,SpatialObj* sobj){
 }
 
 
-Node *sa,*sb;
 
 Node* split(Node*& u){
     // Elegir las dos semillas tal que esten lo más separadas posible
     Node* sem_a = nullptr;
     Node* sem_b = nullptr;
     double max_d = numeric_limits<double>::lowest();
-    /* c = 1; */
-    /* sem_a->is_root = 1; */
 
     for (int i = 0; i < u->children.size(); ++i) {
         Node* a = u->children[i];
@@ -336,7 +332,6 @@ Node* split(Node*& u){
     }
     // Inicializar nuevos u y v
     Node* new_u = new Node;
-    // new_u->is_root = false;
     new_u->status = u->status;
     new_u->parent = u->parent;
     new_u->is_root = u->is_root;
