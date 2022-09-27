@@ -124,13 +124,13 @@ int main(int argc, char** argv)
 
                 }else if(event.key.code == sf::Keyboard::Key::LShift && mode != Mode::insert_polygon){
                     mode = Mode::delete_obj;
-                    cout<<"MODO: eliminar objeto"<<endl;
+                    // cout<<"MODO: eliminar objeto"<<endl;
                 }
             }
             else if(event.type == sf::Event::KeyReleased){
                 if(event.key.code == sf::Keyboard::Key::LShift && mode == Mode::delete_obj){
                     mode = Mode::insert_points;
-                    cout<<"MODO: insertar objeto"<<endl;
+                    // cout<<"MODO: insertar objeto"<<endl;
                 }
  
             }
@@ -160,7 +160,6 @@ int main(int argc, char** argv)
                         pts.push_back({(int) x-rad,(int) y+rad});
                         Point* click = new Point(x,y);
                         Polygon* click_box = new Polygon(pts);
-                        // p->display();
                         rt.remove_spatialobj(click,click_box);
 
                         rectangles.clear();
@@ -184,12 +183,9 @@ int main(int argc, char** argv)
                     
                     knn_lines.clear();
 
-                    cout<<endl<<endl<<endl;
                     
                     for(auto n: result){
-                        n->obj->display();
 
-                        cout<<endl<<"Distancia: "<<pnt->getDistanceTo(n->obj)<<endl;
                         int x_n,y_n;
                         if(n->status == Status::polygon){
                             x_n = (n->obj->getHighX() +  n->obj->getLowX())/2;
@@ -200,7 +196,6 @@ int main(int argc, char** argv)
                             y_n = n->obj->getHighY();
                         }
 
-                        // n->obj->display();
                         Vertex* new_line = new Vertex[2]{Vector2f(x_n,length - y_n),Vector2f(x,length-y)};
                         new_line[0].color = Color::Yellow;
                         new_line[1].color = Color::Yellow;
@@ -210,7 +205,7 @@ int main(int argc, char** argv)
 
                 }
 
-                rt.show_rtree();
+                // rt.show_rtree();
 
             }
         }

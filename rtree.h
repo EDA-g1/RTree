@@ -554,16 +554,11 @@ public:
 
         while(!pq.empty()) {
             pair<double,Node*> front = pq.top();
-            cout<<"Top:"<<endl;
-            front.second->obj->display();
-            cout<<endl<<"Distancia: "<<front.first<<endl;
 
             if(front.second->status == Status::mbb || front.second->status == Status::leaf_mbb)
                 pq.pop();
 
             for(auto&c : front.second->children){
-                c->obj->display();
-                cout<<endl<<source->getDistanceTo(c->obj)<<endl;
                 pq.push({-source->getDistanceTo(c->obj),c});
             }
 
@@ -618,9 +613,6 @@ public:
             return;
         // eliminar punto y reinsertar nodos que hicieron underflow
         Node* supposed_node_to_delete = knn(click,1)[0];
-        cout<<"mostar:\n\n"<<endl;
-        supposed_node_to_delete->obj->display();
-        cout<<endl<<endl;
 
 
         if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
