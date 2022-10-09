@@ -3,7 +3,7 @@
 #include <SFML/System/Time.hpp>
 #include <SFML/System/Clock.hpp>
 #include <vector>
-#include "rtree.h"
+#include "trees.h"
 
 using namespace std;
 using namespace sf;
