@@ -47,6 +47,7 @@ struct SpatialObj {
         //         abs(this->getHighY() - obj->getLowY()),
         //         abs(this->getLowY() - obj->getHighY())
         // );
+
         return sqrt(pow(delta_x,2)+ pow(delta_y,2));
     }
 
@@ -220,6 +221,10 @@ struct Node{
         mbb->high.x = max(u->obj->getHighX(), mbb->high.x);
         mbb->low.y = min(u->obj->getLowY(), mbb->low.y);
         mbb->high.y = max(u->obj->getHighY(), mbb->high.y);
+
+        if(parent){
+            parent->updateMBB(u);
+        }
     }
 
     void set_as_children(Node* u) {
@@ -233,14 +238,13 @@ struct Node{
                     Point(u->obj->getLowX(), u->obj->getLowY()),
                     Point(u->obj->getHighX(), u->obj->getHighY())
             );
-        }
-        else {
+        }else{
             updateMBB(u);
         }
         // Update parent MBB
-        if (parent) {
-            parent->updateMBB(this);
-        }
+        // if (parent) {
+        //     parent->updateMBB(this);
+        // }
         // Insert
         this->children.push_back(u);
     }
@@ -432,6 +436,7 @@ bool eraseObject(vector<Node*> &v, SpatialObj* p) {
     if (pos == -1) return false;
 
     v.erase(v.begin() + pos);
+    delete p;
     return true;
 }
 
@@ -656,28 +661,32 @@ public:
         pq.push({-source->getDistanceTo(root->obj),root});
         vector<Node*> result;
 
+        // int iter = 0;
         while(!pq.empty()) {
             pair<double,Node*> front = pq.top();
-
-            if(front.second->status == Status::mbb || front.second->status == Status::leaf_mbb)
-                pq.pop();
-
-            for(auto&c : front.second->children){
-                pq.push({-source->getDistanceTo(c->obj),c});
-            }
-
-            while(!pq.empty()){
-                pair<int,Node*> del = pq.top();
-                if(del.second->status == Status::point || del.second->status == Status::polygon){
-                    result.push_back(del.second);
-                    if(result.size() == n)
-                        return result;
-                }
-                else
+            pq.pop();
+            // cout<<"iter: "<<iter<<endl;
+            // ++iter;
+            // front.second->obj->display();
+            // cout<<" "<<front.first<<endl;
+            if(front.second->status == Status::polygon || front.second->status == Status::point){
+                result.push_back(front.second);
+                cout<<front.first<<endl;
+                if(result.size() == n)
                     break;
-                pq.pop();
+ 
+            }else{
+                // cout<<"adding childs: "<<endl;
+                for(auto&c : front.second->children){
+                    pq.push({-source->getDistanceTo(c->obj),c});
+                    // cout<<(-source->getDistanceTo(c->obj))<<" ";
+                    // c->obj->display();
+                    // cout<<endl;
+                    
+                }
+                // cout<<"finished"<<endl;
             }
-
+            
         }
         return result;
     }
@@ -685,7 +694,6 @@ public:
 
     vector<Node*> condenseTree(Node* u) {
         Node* n = u;
-        // Node* last;
         vector<Node*> Q; // vector con puntos a reinsertar
         while(!n->is_root) {
             if (n->children.size() < m) {
@@ -695,7 +703,6 @@ public:
                 eraseNode(p->children, n); // eliminar nodo
             }
             n->adjustMBB(); // ajustar mbb con nuevos limites
-            // last = n;
             n = n->parent;
         }
 
@@ -704,6 +711,7 @@ public:
             Node* temp = root;
             root = root->children[0];
             root->is_root = 1;
+            root->parent = nullptr;
             delete temp;
 
         }
@@ -717,6 +725,9 @@ public:
             return;
         // eliminar punto y reinsertar nodos que hicieron underflow
         Node* supposed_node_to_delete = knn(click,1)[0];
+        // cout<<"resultado"<<endl;
+        // supposed_node_to_delete->obj->display();
+        // cout<<endl;
 
 
         if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
