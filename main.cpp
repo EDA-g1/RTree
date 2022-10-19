@@ -5,7 +5,6 @@
 #include <SFML/System/Clock.hpp>
 #include <vector>
 #include "trees.h"
-#define SI 1    
 
 using namespace std;
 using namespace sf;
@@ -100,42 +99,10 @@ int main(int argc, char** argv)
     Mode mode = Mode::insert_points;
 
 
-
-    // for(int i = 0; i < length;i+=20){
-    //     for(int j = 0; j <length; j+=20){
-    //         rt.insert_spatialobj(new Point(i, j),Status::point);
-    //     }
-    // }
-
-    // create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
     
-    if(SI){
-        fstream infile;
-        infile.open("output",ios::in|ios::binary);
-        while(infile.peek() != EOF){
-            Point n_point(0,0);
-            infile.read((char*) &n_point,sizeof(Point));
-
-            Point* n_point2 = new Point(n_point.x,n_point.y);
-            rt.insert_spatialobj(n_point2,Status::point);
-            n_point.display();
-            cout<<endl;
-            
-        }
-
-    }
-    create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
-
     int nn = 3;
-    // infile.close();
-    // return 0;
 
 
-    // a<<"iwi\n";
-    // fstream outfile;
-    // outfile.open("output3",ios::binary|ios::in|ios::app);
-    // outfile.write("a",1);
-    // return 0;
     
     while (window.isOpen())
     {
@@ -205,21 +172,12 @@ int main(int argc, char** argv)
                     if(event.type == sf::Event::MouseWheelScrolled){
                         x = event.mouseWheelScroll.x;
                         y = length - event.mouseWheelScroll.y;
-                        cout<<x<<" "<<y<<endl;
                     }
 
                     if(mode == Mode::insert_points){
                         Point* insert_point = new Point(x, y);
                         rt.insert_spatialobj(insert_point,Status::point);
-                        // outfile.write((char*) insert_point,sizeof(Point));
-                        // char uwu[]= "aa"
-                        // outfile.write(,2);
                         
-                        // a<<"rt.insert_spatialobj(new Point("
-                        // <<to_string((int) x)<<","<<to_string((int) y)<<"),Status::point);"<<endl;
-
-                        // cout<<'\n';
-                        // a<<'\n';
 
                         //TODO: handle garbage  
                         rectangles.clear();
@@ -232,7 +190,7 @@ int main(int argc, char** argv)
                         points_for_polygon.push_back(Point(x, y));
                     }else if(mode == Mode::delete_obj){
                         vector<Point> pts;
-                        int rad = 7;
+                        int rad = 4;
                         pts.push_back({(int) x-rad,(int) y-rad});
                         pts.push_back({(int) x+rad,(int) y-rad});
                         pts.push_back({(int) x+rad,(int) y+rad});
@@ -247,40 +205,15 @@ int main(int argc, char** argv)
                         for(auto&v : knn_lines)
                             delete[] v;
                         knn_lines.clear();
-                        // polygons.push_back(create_polygon(click_box,length));
 
                         create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
                         delete click;
                         delete click_box;
 
                     }
-                }else if(Mouse::isButtonPressed(Mouse::Right)){
-                    vector<Point> pts;
-                        int rad = 15;
-                        pts.push_back({(int) x-rad,(int) y-rad});
-                        pts.push_back({(int) x+rad,(int) y-rad});
-                        pts.push_back({(int) x+rad,(int) y+rad});
-                        pts.push_back({(int) x-rad,(int) y+rad});
-                        Point* click = new Point(x,y);
-                        Polygon* click_box = new Polygon(pts);
-                        rt.remove_spatialobj(click,click_box);
-
-                        rectangles.clear();
-                        points.clear();
-                        polygons.clear();
-                        for(auto&v : knn_lines)
-                            delete[] v;
-                        knn_lines.clear();
-                        // polygons.push_back(create_polygon(click_box,length));
-
-                        create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
-                        delete click;
-                        delete click_box;
-
-
                 }else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
                     Point* pnt = new Point(x,y);
-                    cout<<"resultados: "<<endl;
+                    // cout<<"resultados: "<<endl;
                     auto result = rt.knn(pnt,nn); 
                     delete pnt;
 
@@ -312,7 +245,7 @@ int main(int argc, char** argv)
 
                 }
 
-                rt.show_rtree();
+                // rt.show_rtree();
 
             }
         }
@@ -328,5 +261,4 @@ int main(int argc, char** argv)
        
         window.display();
     }
-    // outfile.close();
 }

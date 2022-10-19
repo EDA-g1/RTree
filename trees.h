@@ -671,7 +671,7 @@ public:
             // cout<<" "<<front.first<<endl;
             if(front.second->status == Status::polygon || front.second->status == Status::point){
                 result.push_back(front.second);
-                cout<<front.first<<endl;
+                // cout<<front.first<<endl;
                 if(result.size() == n)
                     break;
  
