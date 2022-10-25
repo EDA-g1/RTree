@@ -4,10 +4,11 @@
 #include <SFML/System/Time.hpp>
 #include <SFML/System/Clock.hpp>
 #include <vector>
-#include "trees.h"
+#include "rtree.h"
 
 using namespace std;
 using namespace sf;
+
 
 
 vector<Color> clrs = {Color::Red,Color::Green,Color::Blue,Color::Yellow,Color::Magenta,Color::Cyan};

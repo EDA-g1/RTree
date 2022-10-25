@@ -2,11 +2,11 @@ CC = g++
 DEBUGGER = gdb
 SFML_FLAGS = -lsfml-graphics -lsfml-window -lsfml-system
 DEBUG_FLAGS = -g
-EXECUTABLE = ./sfml-app
+EXECUTABLE = sfml-app
 TARGETS = ./main.cpp
 
 run: build
-	$(EXECUTABLE)
+	./$(EXECUTABLE)
 build:
 	$(CC) $(TARGETS) -o $(EXECUTABLE) $(SFML_FLAGS)
 debug: debug_build
