@@ -468,7 +468,7 @@ public:
 
 
    vector<Node*> df_knn(SpatialObj* source,int n){
-        priority_queue<pair<double,Node*>> pq;
+        priority_queue<pair<double,Node*> > pq;
         stack<Node*> s;
         // pq.push({-source->getDistanceTo(root->obj),root});
         s.push(root);
@@ -480,44 +480,71 @@ public:
             Node* actual = s.top();
             s.pop();
 
+
             for(auto&c:actual->children){
 
-                int delta_x = (actual->obj->getHighX() - actual->obj->getLowX())/2;
-                int delta_y = (actual->obj->getHighY() - actual->obj->getLowY())/2;
+                int delta_x = (actual->obj->getHighX() + actual->obj->getLowX())/2;
+                int delta_y = (actual->obj->getHighY() + actual->obj->getLowY())/2;
 
                 Point* mp = new Point(delta_x,delta_y);
+
+
                 if(actual->status == Status::leaf_mbb){
-
-                    if(pq.size() < n){
-
-                        pq.push({source->getDistanceTo(c->obj),c});
-                    }else{
+                    if (pq.size() < n) {
+                        pq.push({source->getDistanceTo(c->obj), c});
+                    } else {
                         auto [Dk,peor] = pq.top();
-
-
                         if(Dk + c->obj->getDistanceTo(mp) > source->getDistanceTo(mp)){
                             pq.pop();
                             pq.push({source->getDistanceTo(c->obj),c});
-                        }
-
+                        } 
+                        else if (Dk + source->getDistanceTo(mp) > c->obj->getDistanceTo(mp)) {
+                            pq.pop();
+                            pq.push({source->getDistanceTo(c->obj), c});
+                        } 
                     }
-                }else{
+                } else {
 
-                    if(pq.size() <  n){
+                    if (pq.size() < n) {
                         s.push(c);
-                    }
-                    else{
-
+                    } else {
                         auto [Dk,peor] = pq.top();
+
                         int vx = (actual->obj->getHighX() - actual->obj->getLowX());
                         int vy = (actual->obj->getHighY() - actual->obj->getLowY());
                         int r = sqrt(vx*vx + vy*vy)/2;
 
-                        if(Dk + r > source->getDistanceTo(mp)){
 
+                        double rmin = numeric_limits<int>::max();
+                        if (c->status == Status::leaf_mbb) {
+                            for (auto point: c->children) {
+                                rmin = min(rmin, point->obj->getDistanceTo(mp));
+                            }
+                        } else {
+                            for (auto box: c->children) {
+                                int dx = (box->obj->getHighX() + box->obj->getLowX())/2;
+                                int dy = (box->obj->getHighY() + box->obj->getLowY())/2;
+
+                                Point* temp_mp = new Point(dx, dy);
+
+
+                                int vx_2 = (box->obj->getHighX() - box->obj->getLowX());
+                                int vy_2 = (box->obj->getHighY() - box->obj->getLowY());
+                                int r_2 = sqrt(vx_2*vx_2 + vy_2*vy_2)/2;
+
+                                double diff = mp->getDistanceTo(temp_mp) - r_2;
+                                rmin = min(rmin, diff);
+                            }
+                        }
+
+                        if(Dk + r > source->getDistanceTo(mp)) {
                             s.push(c);
-                        }     
-                    } 
+                        } 
+                        else if (Dk + source->getDistanceTo(mp) > rmin) {
+                            s.push(c);
+                        }
+                    }
+
                 }
 
                 delete mp;
@@ -533,6 +560,7 @@ public:
             pq.pop();
         }
 
+        return result;  
    }
 
 };

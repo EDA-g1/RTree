@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
-#define M 4 
+#define M 4
 #define m 2 
 #define heuristica 0 
 

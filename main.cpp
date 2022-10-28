@@ -87,7 +87,7 @@ void create_tree_gui(vector<RectangleShape>&rectangles,vector<CircleShape>&point
 
 int main(int argc, char** argv)
 {
-    int length = 800;
+    int length = 1500;
     sf::RenderWindow window(sf::VideoMode(length, length), "My window");
     sf::Clock c;
     RTree rt;
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
                 }else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
                     Point* pnt = new Point(x,y);
                     // cout<<"resultados: "<<endl;
-                    auto result = rt.knn(pnt,nn); 
+                    auto result = rt.df_knn(pnt,nn); 
                     delete pnt;
 
 
