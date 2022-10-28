@@ -215,7 +215,17 @@ int main(int argc, char** argv)
                 }else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
                     Point* pnt = new Point(x,y);
                     // cout<<"resultados: "<<endl;
-                    auto result = rt.df_knn(pnt,nn); 
+                    auto result = rt.knn(pnt,nn); 
+
+
+                    auto knn = rt.df_knn(pnt, nn);
+                    auto knn2 = rt.knn(pnt, nn);
+
+                    for (auto val: knn) val->obj->display();
+                    cout << endl;
+                    for (auto val: knn2) val->obj->display();
+                    cout << endl;
+
                     delete pnt;
 
 

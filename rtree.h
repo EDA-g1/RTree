@@ -466,9 +466,18 @@ public:
 
    }
 
+   void pq_show(priority_queue<pair<double,Node*>> pq) {
+    while(!pq.empty()) {
+        cout << pq.top().first << ", ";
+        pq.top().second->obj->display();
+        pq.pop();
+    }
+    cout << endl;
+   }
+
 
    vector<Node*> df_knn(SpatialObj* source,int n){
-        priority_queue<pair<double,Node*> > pq;
+        priority_queue<pair<double,Node*>> pq;
         stack<Node*> s;
         // pq.push({-source->getDistanceTo(root->obj),root});
         s.push(root);
@@ -488,24 +497,23 @@ public:
 
                 Point* mp = new Point(delta_x,delta_y);
 
-
                 if(actual->status == Status::leaf_mbb){
                     if (pq.size() < n) {
                         pq.push({source->getDistanceTo(c->obj), c});
+
                     } else {
                         auto [Dk,peor] = pq.top();
-                        if(Dk + c->obj->getDistanceTo(mp) > source->getDistanceTo(mp)){
+                        // if(Dk + c->obj->getDistanceTo(mp) >= source->getDistanceTo(mp) && Dk + source->getDistanceTo(mp) >= c->obj->getDistanceTo(mp)) {
+                        if(source->getDistanceTo(c->obj) < Dk) {
                             pq.pop();
                             pq.push({source->getDistanceTo(c->obj),c});
-                        } 
-                        else if (Dk + source->getDistanceTo(mp) > c->obj->getDistanceTo(mp)) {
-                            pq.pop();
-                            pq.push({source->getDistanceTo(c->obj), c});
-                        } 
+                        }
+
                     }
                 } else {
 
                     if (pq.size() < n) {
+
                         s.push(c);
                     } else {
                         auto [Dk,peor] = pq.top();
@@ -532,17 +540,15 @@ public:
                                 int vy_2 = (box->obj->getHighY() - box->obj->getLowY());
                                 int r_2 = sqrt(vx_2*vx_2 + vy_2*vy_2)/2;
 
-                                double diff = mp->getDistanceTo(temp_mp) - r_2;
+                                double diff = max(mp->getDistanceTo(temp_mp) - r_2, (double) 0);
                                 rmin = min(rmin, diff);
                             }
                         }
 
-                        if(Dk + r > source->getDistanceTo(mp)) {
+                        if(Dk + r >= source->getDistanceTo(mp) && Dk + source->getDistanceTo(mp) >= rmin) {
                             s.push(c);
                         } 
-                        else if (Dk + source->getDistanceTo(mp) > rmin) {
-                            s.push(c);
-                        }
+
                     }
 
                 }
@@ -559,6 +565,8 @@ public:
             result.push_back(pq.top().second);
             pq.pop();
         }
+
+        reverse(result.begin(), result.end());
 
         return result;  
    }
