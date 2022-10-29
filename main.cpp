@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <SFML/Graphics.hpp>
 #include <SFML/System/Time.hpp>
 #include <SFML/System/Clock.hpp>
@@ -7,6 +8,7 @@
 
 using namespace std;
 using namespace sf;
+
 
 
 vector<Color> clrs = {Color::Red,Color::Green,Color::Blue,Color::Yellow,Color::Magenta,Color::Cyan};
@@ -55,18 +57,22 @@ RectangleShape create_mbb_shape(Node* current,int offset,int depth){
 void create_tree_gui(vector<RectangleShape>&rectangles,vector<CircleShape>&points, vector<ConvexShape>&polygons,Node* current,int offset,int depth){
 
 
-    if(!current->is_root){
-        if(current->status == Status::mbb || current->status == Status::leaf_mbb){
-            RectangleShape r = create_mbb_shape(current,offset,depth);
-            rectangles.push_back(r);
-        }else if(current->status == Status::point){
-            CircleShape c = create_point(current->obj->getLowX(),offset - current->obj->getLowY());
-            points.push_back(c);
-        }else if(current->status == Status::polygon){
-            ConvexShape cvx_s = create_polygon((Polygon*) current->obj,offset);
-            polygons.push_back(cvx_s);
+    if(!current->is_root ){
+        if(true){
+            if(current->status == Status::mbb || current->status == Status::leaf_mbb){
+                RectangleShape r = create_mbb_shape(current,offset,depth);
+                rectangles.push_back(r);
+            }else if(current->status == Status::point){
+                // cout<<depth<<endl;
+                CircleShape c = create_point(current->obj->getLowX(),offset - current->obj->getLowY());
+                points.push_back(c);
+            }else if(current->status == Status::polygon){
+                ConvexShape cvx_s = create_polygon((Polygon*) current->obj,offset);
+                polygons.push_back(cvx_s);
+            }
+    
         }
-        depth += 1;
+       depth += 1;
     }
 
     if(current->status != Status::point  && current->status != Status::polygon  ){
@@ -93,6 +99,11 @@ int main(int argc, char** argv)
     vector<Vertex*> knn_lines;
     Mode mode = Mode::insert_points;
 
+
+    
+    int nn = 3;
+
+
     
     while (window.isOpen())
     {
@@ -103,17 +114,32 @@ int main(int argc, char** argv)
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+           
+            else if(event.type == sf::Event::TextEntered){
+
+
+                int supuesto_numero = event.text.unicode-48;
+                if(supuesto_numero >= 0 && supuesto_numero<= 9){
+                    cout<<supuesto_numero<<endl;
+                    nn = nn*10 + supuesto_numero;
+                }
+ 
+            }
             else if(event.type == sf::Event::KeyPressed){
+
                 if(event.key.code == sf::Keyboard::Key::Q){
                     if(mode == Mode::insert_points){
                         mode = Mode::insert_polygon;
                     }else if(mode == Mode::insert_polygon){
                         if(points_for_polygon.size() >= 3){
                             rt.insert_spatialobj(new Polygon(points_for_polygon),Status::polygon);
-
                             rectangles.clear();
                             polygons.clear();
                             knn_lines.clear();
+
+                            for(auto&v : knn_lines)
+                                delete[] v;
+
 
                             create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
 
@@ -122,7 +148,12 @@ int main(int argc, char** argv)
                         mode = Mode::insert_points;
                     }
 
-                }else if(event.key.code == sf::Keyboard::Key::LShift && mode != Mode::insert_polygon){
+                }else if(event.key.code == sf::Keyboard::Key::W) {
+                    cout<<"El nn actual es "<<nn<<endl;
+                }else if(event.key.code == sf::Keyboard::Key::BackSpace){
+                    nn = nn == 0 ? 0 : nn/10;
+                }
+                else if(event.key.code == sf::Keyboard::Key::LShift && mode != Mode::insert_polygon){
                     mode = Mode::delete_obj;
                     // cout<<"MODO: eliminar objeto"<<endl;
                 }
@@ -134,13 +165,20 @@ int main(int argc, char** argv)
                 }
  
             }
-            else if(event.type == sf::Event::MouseButtonPressed){
+            else if(event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::MouseWheelScrolled){
                 float x = event.mouseButton.x;
                 float y = length - event.mouseButton.y;
                 cout<<x<<" "<<y<<endl;
-                if(Mouse::isButtonPressed(Mouse::Left)){
+                if(Mouse::isButtonPressed(Mouse::Left) || event.type == sf::Event::MouseWheelScrolled){
+                    if(event.type == sf::Event::MouseWheelScrolled){
+                        x = event.mouseWheelScroll.x;
+                        y = length - event.mouseWheelScroll.y;
+                    }
+
                     if(mode == Mode::insert_points){
-                        rt.insert_spatialobj(new Point(x, y),Status::point);
+                        Point* insert_point = new Point(x, y);
+                        rt.insert_spatialobj(insert_point,Status::point);
+                        
 
                         //TODO: handle garbage  
                         rectangles.clear();
@@ -153,7 +191,7 @@ int main(int argc, char** argv)
                         points_for_polygon.push_back(Point(x, y));
                     }else if(mode == Mode::delete_obj){
                         vector<Point> pts;
-                        int rad = 7;
+                        int rad = 4;
                         pts.push_back({(int) x-rad,(int) y-rad});
                         pts.push_back({(int) x+rad,(int) y-rad});
                         pts.push_back({(int) x+rad,(int) y+rad});
@@ -165,17 +203,20 @@ int main(int argc, char** argv)
                         rectangles.clear();
                         points.clear();
                         polygons.clear();
+                        for(auto&v : knn_lines)
+                            delete[] v;
                         knn_lines.clear();
-                        // polygons.push_back(create_polygon(click_box,length));
 
                         create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
                         delete click;
                         delete click_box;
 
                     }
-                }else{
+                }else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
                     Point* pnt = new Point(x,y);
-                    auto result = rt.knn(pnt,3); 
+                    // cout<<"resultados: "<<endl;
+                    auto result = rt.knn(pnt,nn); 
+                    delete pnt;
 
 
                     for(auto&n : knn_lines)

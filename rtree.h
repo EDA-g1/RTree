@@ -1,189 +1,11 @@
-#include <iostream>
-#include <queue>
-#include <utility>
-#include <vector>
-#include <algorithm>
-#include <limits>
-#include <cmath>
-#define M 4 
-#define m 2 
-#define heuristica 0 
-
-
-using namespace std;
-
+#include "spatial_objects.h"
+#include <stack>
 // Node
 struct Node;
-// SpatialObj
-struct SpatialObj;
-// SpatialObj implementations
-struct Point;
-struct Polygon;
-struct MBB;
-
-enum class Status {mbb,leaf_mbb,point,polygon};
-
-
-struct SpatialObj {
-    virtual int getLowX() = 0;
-    virtual int getHighX() = 0;
-    virtual int getLowY() = 0;
-    virtual int getHighY() = 0;
-
-    virtual void display() = 0;
-
-    double intersection(SpatialObj* other){
-        double base = max(min(getHighX(),other->getHighX()) - max(getLowX(),other->getLowX()) ,0);
-        double height = max(min(getHighY(),other->getHighY()) - max(getLowY(),other->getLowY()) ,0);
-
-        return base*height;
-    }
-
-
-    double getDistanceTo(SpatialObj* other) {
-        int delta_x = max(max(getLowX(),other->getLowX()) - min(getHighX(),other->getHighX()) ,0);
-        int delta_y = max(max(getLowY(),other->getLowY()) - min(getHighY(),other->getHighY()) ,0);
-        // int delta_y = min(
-        //         abs(this->getHighY() - obj->getLowY()),
-        //         abs(this->getLowY() - obj->getHighY())
-        // );
-        return sqrt(pow(delta_x,2)+ pow(delta_y,2));
-    }
 
 
 
 
-};
-
-struct Point : public SpatialObj{
-    int x;
-    int y;
-
-    Point(int _x, int _y) {
-        x = _x;
-        y = _y;
-    }
-
-    void display() override {
-        cout << "POINT: (" << x << "," << y << ") ";
-    }
-
-    int getHighX() override {
-        return x;
-    }
-    int getHighY() override {
-        return y;
-    }
-    int getLowX() override {
-        return x;
-    }
-    int getLowY() override {
-        return y;
-    }
-};
-
-struct MBB : public SpatialObj{
-    Point low;
-    Point high;
-
-    MBB(Point _low, Point _high):
-        low{std::move(_low)},
-        high{std::move(_high)}
-        {}
-
-    double getArea() const {
-        return (high.x-low.x) * (high.y-low.y);
-    }
-
-    void display() override {
-        cout << "MBB: { (" << getLowX() << "," << getLowY() << ") , (" << getHighX() << "," << getHighY() << ") }";
-    }
-
-    int getHighX() override {
-        return high.x;
-    }
-    int getHighY() override {
-        return high.y;
-    }
-    int getLowX() override {
-        return low.x;
-    }
-    int getLowY() override {
-        return low.y;
-    }
-
-    double requiredMBBIncrease(SpatialObj* s) const {
-        MBB new_mbb(
-                Point(
-                        min(s->getLowX(), this->low.x),
-                        min(s->getLowY(), this->low.y)
-                ),
-                Point(
-                        max(s->getHighX(), this->high.x),
-                        max(s->getHighY(), this->high.y)
-                )
-        );
-        
-        
-        int old_perimeter = 2*(this->high.x - this->low.x) + 2*(this->high.y - this->low.y) ;
-        int new_perimeter = 2*(new_mbb.high.x - new_mbb.low.x) + 2*(new_mbb.high.y - new_mbb.low.y) ;
-
-
-        double old_h = new_mbb.getArea()-this->getArea();
-        double new_h = new_perimeter - old_perimeter;
-
-        //heuristic for box expansion
-        return  heuristica ? old_h : new_h;
-    }
-
-    
-};
-
-struct Polygon : public SpatialObj{
-    vector<Point> points;
-    MBB box{{0,0},{0,0}};
-
-    Polygon(vector<Point> _points) {
-        // Set points
-        points = _points;
-        // Get MBB
-        int min_x = numeric_limits<int>::max();
-        int min_y = numeric_limits<int>::max();
-        int max_x = numeric_limits<int>::min();
-        int max_y = numeric_limits<int>::min();
-        for (const auto &p : points) {
-            if (p.x < min_x) {min_x = p.x;}
-            if (p.y < min_y) {min_y = p.y;}
-            if (p.x > max_x) {max_x = p.x;}
-            if (p.y > max_y) {max_y = p.y;}
-        }
-        // Set MBB
-        box = MBB(Point(min_x, min_y), Point(max_x, max_y));
-    }
-
-    void display() override {
-        cout << "POLYGON: { ";
-        for (const auto& p : points) {
-            cout << "(" << p.x << "," << p.y << ") ";
-        }
-        cout << "}";
-        // Print MBB
-        cout << " #"; box.display();
-    }
-
-    int getHighX() override {
-        return box.getHighX();
-    }
-    int getHighY() override {
-        return box.getHighY();
-    }
-    int getLowX() override {
-        return box.getLowX();
-    }
-    int getLowY() override {
-        return box.getLowY();
-    }
-};
 
 //Node
 struct Node{
@@ -220,6 +42,10 @@ struct Node{
         mbb->high.x = max(u->obj->getHighX(), mbb->high.x);
         mbb->low.y = min(u->obj->getLowY(), mbb->low.y);
         mbb->high.y = max(u->obj->getHighY(), mbb->high.y);
+
+        if(parent){
+            parent->updateMBB(u);
+        }
     }
 
     void set_as_children(Node* u) {
@@ -233,14 +59,13 @@ struct Node{
                     Point(u->obj->getLowX(), u->obj->getLowY()),
                     Point(u->obj->getHighX(), u->obj->getHighY())
             );
-        }
-        else {
+        }else{
             updateMBB(u);
         }
         // Update parent MBB
-        if (parent) {
-            parent->updateMBB(this);
-        }
+        // if (parent) {
+        //     parent->updateMBB(this);
+        // }
         // Insert
         this->children.push_back(u);
     }
@@ -254,14 +79,10 @@ struct Node{
     }
 };
 
-void printNode(vector<Node*> v) {
-    for (auto &node: v) {
-        node->obj->display();
-    }
-    cout << endl;
-}
 
 
+
+void printNode(vector<Node*> v); 
 Node * insert(Node*& u, SpatialObj* p,Status _status);
 Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
@@ -273,6 +94,16 @@ void getLeaves(vector<Node*> &v, Node* &u);
 bool contains(SpatialObj* u, SpatialObj* p);
 void eraseNode(vector<Node*> &v, Node* &n);
 bool eraseObject(vector<Node*> &v, SpatialObj* p);
+
+
+void printNode(vector<Node*> v) {
+    for (auto &node: v) {
+        node->obj->display();
+    }
+    cout << endl;
+}
+
+
 
 Node * insert(Node*& u, SpatialObj* p,Status _status){
     if(u->status == Status::leaf_mbb){
@@ -296,18 +127,10 @@ Node * insert(Node*& u, SpatialObj* p,Status _status){
     }
 }
 
-// vector<Node*> remove(Node*& u,SpatialObj* p) {
-    // if (u->status == Status::leaf_mbb) {
-        // cout<<"llegue a una hoja";
-    // if(p != nullptr){
-    // eraseObject(u->children, p);
-        // return condenseTree(u);
-    // }
-    // } else {
-        // Node* v = choose_subtree(u, p);
-        // return remove(v, p);
-    // }
-// }
+
+
+//orden 2 => n = 4
+
 
 void eraseNode(vector<Node*> &v, Node* &n) {
         int pos = -1;
@@ -333,6 +156,7 @@ bool eraseObject(vector<Node*> &v, SpatialObj* p) {
     if (pos == -1) return false;
 
     v.erase(v.begin() + pos);
+    delete p;
     return true;
 }
 
@@ -512,6 +336,10 @@ void show(Node* node, string prefix){
     }
 }
 
+
+
+
+
 // RTree
 class RTree{
 private:
@@ -552,28 +380,32 @@ public:
         pq.push({-source->getDistanceTo(root->obj),root});
         vector<Node*> result;
 
+        // int iter = 0;
         while(!pq.empty()) {
             pair<double,Node*> front = pq.top();
-
-            if(front.second->status == Status::mbb || front.second->status == Status::leaf_mbb)
-                pq.pop();
-
-            for(auto&c : front.second->children){
-                pq.push({-source->getDistanceTo(c->obj),c});
-            }
-
-            while(!pq.empty()){
-                pair<int,Node*> del = pq.top();
-                if(del.second->status == Status::point || del.second->status == Status::polygon){
-                    result.push_back(del.second);
-                    if(result.size() == n)
-                        return result;
-                }
-                else
+            pq.pop();
+            // cout<<"iter: "<<iter<<endl;
+            // ++iter;
+            // front.second->obj->display();
+            // cout<<" "<<front.first<<endl;
+            if(front.second->status == Status::polygon || front.second->status == Status::point){
+                result.push_back(front.second);
+                // cout<<front.first<<endl;
+                if(result.size() == n)
                     break;
-                pq.pop();
+ 
+            }else{
+                // cout<<"adding childs: "<<endl;
+                for(auto&c : front.second->children){
+                    pq.push({-source->getDistanceTo(c->obj),c});
+                    // cout<<(-source->getDistanceTo(c->obj))<<" ";
+                    // c->obj->display();
+                    // cout<<endl;
+                    
+                }
+                // cout<<"finished"<<endl;
             }
-
+            
         }
         return result;
     }
@@ -581,7 +413,6 @@ public:
 
     vector<Node*> condenseTree(Node* u) {
         Node* n = u;
-        // Node* last;
         vector<Node*> Q; // vector con puntos a reinsertar
         while(!n->is_root) {
             if (n->children.size() < m) {
@@ -591,7 +422,6 @@ public:
                 eraseNode(p->children, n); // eliminar nodo
             }
             n->adjustMBB(); // ajustar mbb con nuevos limites
-            // last = n;
             n = n->parent;
         }
 
@@ -600,6 +430,7 @@ public:
             Node* temp = root;
             root = root->children[0];
             root->is_root = 1;
+            root->parent = nullptr;
             delete temp;
 
         }
@@ -613,6 +444,9 @@ public:
             return;
         // eliminar punto y reinsertar nodos que hicieron underflow
         Node* supposed_node_to_delete = knn(click,1)[0];
+        // cout<<"resultado"<<endl;
+        // supposed_node_to_delete->obj->display();
+        // cout<<endl;
 
 
         if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
@@ -629,6 +463,75 @@ public:
 
 
 
+
+   }
+
+
+   vector<Node*> df_knn(SpatialObj* source,int n){
+        priority_queue<pair<double,Node*>> pq;
+        stack<Node*> s;
+        // pq.push({-source->getDistanceTo(root->obj),root});
+        s.push(root);
+
+
+
+        while(!s.empty()){
+
+            Node* actual = s.top();
+            s.pop();
+
+            for(auto&c:actual->children){
+
+                int delta_x = (actual->obj->getHighX() - actual->obj->getLowX())/2;
+                int delta_y = (actual->obj->getHighY() - actual->obj->getLowY())/2;
+
+                Point* mp = new Point(delta_x,delta_y);
+                if(actual->status == Status::leaf_mbb){
+
+                    if(pq.size() < n){
+
+                        pq.push({source->getDistanceTo(c->obj),c});
+                    }else{
+                        auto [Dk,peor] = pq.top();
+
+
+                        if(Dk + c->obj->getDistanceTo(mp) > source->getDistanceTo(mp)){
+                            pq.pop();
+                            pq.push({source->getDistanceTo(c->obj),c});
+                        }
+
+                    }
+                }else{
+
+                    if(pq.size() <  n){
+                        s.push(c);
+                    }
+                    else{
+
+                        auto [Dk,peor] = pq.top();
+                        int vx = (actual->obj->getHighX() - actual->obj->getLowX());
+                        int vy = (actual->obj->getHighY() - actual->obj->getLowY());
+                        int r = sqrt(vx*vx + vy*vy)/2;
+
+                        if(Dk + r > source->getDistanceTo(mp)){
+
+                            s.push(c);
+                        }     
+                    } 
+                }
+
+                delete mp;
+
+            }
+
+        }
+
+        vector<Node*> result;
+
+        while(!pq.empty()){
+            result.push_back(pq.top().second);
+            pq.pop();
+        }
 
    }
 
