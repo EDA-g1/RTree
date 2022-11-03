@@ -1,9 +1,6 @@
 #include "spatial_objects.h"
 
-
-
-
-// HilbertNode
+// HilbertHilbertNode
 
 struct HilbertNode{
     HilbertNode* parent= nullptr;
@@ -213,13 +210,17 @@ class HB_Tree{
     }
 
 
+
+    //N es un padre para insert_node 
+    //retorno: un hermano para N
+
     HilbertNode* handle_overflow(HilbertNode* N, HilbertNode* insert_node){
         HilbertNode* NN = nullptr;
         bool posible = 0;
 
-        vector<HilbertNode*> E = get_S(N);
+        vector<HilbertNode*> hermanos_n = get_S(N);
 
-        for(auto& e : E){
+        for(auto& e : hermanos_n){
             if(e->children.size() < M){
                 posible = 1;
             }
@@ -230,34 +231,28 @@ class HB_Tree{
 
         if(!posible){
             NN = new HilbertNode();
-            NN->status = N->status;
+	    //status stand by
+	    NN->status = N->status;
             NN->obj = new MBB(Point(0,0),Point(0,0));
-            E.push_back(NN);
+            hermanos_n.push_back(NN);
         }
 
 
         vector<HilbertNode*> total_children; 
 
 
-        for(auto& p : E){
+        for(auto& p : hermanos_n){
             for(auto & c : p->children){
                 total_children.push_back(c);
             }
         }
 
-        //M = 4
-        //m = 2
-        //11
-        //
-        //z
-        //a b-- - || d e f g ||  l m n r
-
         int it = 0;
-        int children_per_node = total_children.size()/E.size();//3
-        int leftovers = total_children.size() % E.size();//2
+        int children_per_node = total_children.size()/hermanos_n.size();//3
+        int leftovers = total_children.size() % hermanos_n.size();//2
 
 
-        for(int rep = 0; rep < E.size();++rep){
+        for(int rep = 0; rep < hermanos_n.size();++rep){
 
             int chidren_in_node = children_per_node;
 
@@ -266,51 +261,71 @@ class HB_Tree{
                 leftovers--;
             }
 
-            E[rep]->children.clear();
+            hermanos_n[rep]->children.clear();
 
             for(int i ;i < children_per_node;++i){
                 if(total_children[it] == insert_node)
-                    insert_node->parent = E[rep];
+                    insert_node->parent = hermanos_n[rep];
 
-                E[rep]->children.push_back(total_children[it]);
+                hermanos_n[rep]->children.push_back(total_children[it]);
                 ++it;
                 
             }
 
-            E[rep]->sort_nodes();
+            hermanos_n[rep]->sort_nodes();
+	    hermanos_n[rep]->adjustMBB();
         }
 
         return NN;
     }
 
 
-    void adjustTree(vector<HilbertNode*> S,HilbertNode* N, HilbertNode* NN){
+    //NN es un hermano para N (estan al mismo nivel)
+    void adjustTree(HilbertNode* N, HilbertNode* NN){
+	//status
+	//
+	if(N->is_root){
+	    if(NN){
+		N->is_root = false;
+		root = new HilbertNode;
+		root->is_root = true;
+		root->status = Status::mbb;
+		root->obj = new MBB(Point(0,0),Point(0,0));
+		root->children.push_back(N);
+		root->children.push_back(NN);
+		root->sort_nodes();
+		root->adjustMBB();
+	    }
+	    
+	    return;
+	}
 
+	HilbertNode* n_parent = N->parent;
 
-        if(NN != nullptr){
+	if(NN){
+	    if(n_parent->children.size() < M){
+		n_parent->children.push_back(NN);
+		NN = nullptr;
+	    }else{
+		NN = handle_overflow(n_parent, NN);
+		//ahora NN es un hermano para el padre de N
+	    }
+	}
 
-            if(N->parent->children.size() < M){
-                N->parent->children.push_back(NN);
-                N->parent->sort_nodes();
-            }else{
+	n_parent->adjustMBB();
 
-                NN = handle_overflow(N->parent,NN);
-
-            }
-           
-
-        }
-
-
-
+	adjustTree(n_parent,NN);
     }
+
+
+    public:
 
     void insert(SpatialObj* new_obj, Status s,int h_index ){
 
         HilbertNode* L = choose_leaf(root,h_index);
         HilbertNode* obj_wrapper = new HilbertNode();
         HilbertNode* NN = nullptr;
-        vector<HilbertNode*> S;
+
         obj_wrapper->obj = new_obj;
         obj_wrapper->status = s;
         obj_wrapper->hindex = h_index;
@@ -318,24 +333,62 @@ class HB_Tree{
         if(L->children.size() < M){
             L->children.push_back(obj_wrapper);
             obj_wrapper->parent = L;
-            adjustTree(S,L,NN);
+            adjustTree(L,NN);
         }else{
+	    //NN es un hermano de L que no esta insertado en el mismo nodo
             NN = handle_overflow(L,obj_wrapper);
-            S = get_S(L);
-            adjustTree(S,L,NN);
+            adjustTree(L,NN);
         }
-        
-
-
-
-
-
     }
 
 
-    public:
+    void show_rtree() {
+        show(root,"");
+    }
 
 
+    HilbertNode* get_root(){
+        return root;
+    }
+
+
+    vector<HilbertNode*> knn(SpatialObj* source, int n){
+        if(root->obj == nullptr)
+            return vector<HilbertNode*>{};
+
+        priority_queue<pair<double,HilbertNode*>> pq;
+        pq.push({-source->getDistanceTo(root->obj),root});
+        vector<HilbertNode*> result;
+
+        // int iter = 0;
+        while(!pq.empty()) {
+            pair<double,HilbertNode*> front = pq.top();
+            pq.pop();
+            // cout<<"iter: "<<iter<<endl;
+            // ++iter;
+            // front.second->obj->display();
+            // cout<<" "<<front.first<<endl;
+            if(front.second->status == Status::polygon || front.second->status == Status::point){
+                result.push_back(front.second);
+                // cout<<front.first<<endl;
+                if(result.size() == n)
+                    break;
+ 
+            }else{
+                // cout<<"adding childs: "<<endl;
+                for(auto&c : front.second->children){
+                    pq.push({-source->getDistanceTo(c->obj),c});
+                    // cout<<(-source->getDistanceTo(c->obj))<<" ";
+                    // c->obj->display();
+                    // cout<<endl;
+                    
+                }
+                // cout<<"finished"<<endl;
+            }
+            
+        }
+        return result;
+    }
 
 };
 
