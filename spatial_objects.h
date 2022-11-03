@@ -130,6 +130,13 @@ struct MBB : public SpatialObj{
         return  heuristica ? old_h : new_h;
     }
 
+
+    Point center(){
+        return Point((getHighX() - getLowX())/2,(getHighY() - getLowY())/2);
+
+    }
+    
+
     
 };
 
@@ -176,5 +183,11 @@ struct Polygon : public SpatialObj{
     }
     int getLowY() override {
         return box.getLowY();
+    }
+
+
+    Point center(){
+        return Point((getHighX() - getLowX())/2,(getHighY() - getLowY())/2);
+
     }
 };
