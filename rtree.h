@@ -30,10 +30,10 @@ struct Node{
             min_y = min(c->obj->getLowY(), min_y);
         }
 
-        mbb->low.x = max(mbb->low.x, min_x);
-        mbb->low.y = max(mbb->low.y, min_y);
-        mbb->high.x = min(mbb->high.x, max_x);
-        mbb->high.y = min(mbb->high.y, max_y);
+        mbb->low.x = min_x;
+        mbb->low.y = min_y;
+        mbb->high.x = max_x;
+        mbb->high.y = max_y;
     }
 
     void updateMBB(Node* u) const {

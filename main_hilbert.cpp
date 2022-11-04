@@ -5,6 +5,7 @@
 #include <SFML/System/Clock.hpp>
 #include <vector>
 #include "hilbert_tree.h"
+#define k_depth 9
 
 using namespace std;
 using namespace sf;
@@ -90,7 +91,7 @@ int main(int argc, char** argv)
     int length = 800;
     sf::RenderWindow window(sf::VideoMode(length, length), "My window");
     sf::Clock c;
-    RTree rt;
+    HB_Tree hb;
 
     vector<RectangleShape> rectangles;
     vector<CircleShape> points;
@@ -132,7 +133,7 @@ int main(int argc, char** argv)
                         mode = Mode::insert_polygon;
                     }else if(mode == Mode::insert_polygon){
                         if(points_for_polygon.size() >= 3){
-                            rt.insert_spatialobj(new Polygon(points_for_polygon),Status::polygon);
+                            // hb.insert(new Polygon(points_for_polygon),Status::polygon);
                             rectangles.clear();
                             polygons.clear();
                             knn_lines.clear();
@@ -141,7 +142,7 @@ int main(int argc, char** argv)
                                 delete[] v;
 
 
-                            create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
+                            create_tree_gui(rectangles,points,polygons,hb.get_root(),length,0);
 
                         }
                         points_for_polygon.clear();
@@ -177,7 +178,16 @@ int main(int argc, char** argv)
 
                     if(mode == Mode::insert_points){
                         Point* insert_point = new Point(x, y);
-                        rt.insert_spatialobj(insert_point,Status::point);
+                        int y_p = (y/ (double) length)*(1 << k_depth);
+                        int x_p = (x/ (double) length)*(1 << k_depth);
+
+                        int h_index = hindex(x_p,y_p,2*k_depth);
+
+
+                        hb.insert(insert_point,Status::point,h_index);
+
+
+                        
                         
 
                         //TODO: handle garbage  
@@ -186,7 +196,7 @@ int main(int argc, char** argv)
                         polygons.clear();
                         knn_lines.clear();
 
-                        create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
+                        create_tree_gui(rectangles,points,polygons,hb.get_root(),length,0);
                     }else if(mode == Mode::insert_polygon){
                         points_for_polygon.push_back(Point(x, y));
                     }else if(mode == Mode::delete_obj){
@@ -198,7 +208,7 @@ int main(int argc, char** argv)
                         pts.push_back({(int) x-rad,(int) y+rad});
                         Point* click = new Point(x,y);
                         Polygon* click_box = new Polygon(pts);
-                        rt.remove_spatialobj(click,click_box);
+                        // hb.remove_spatialobj(click,click_box);
 
                         rectangles.clear();
                         points.clear();
@@ -207,7 +217,7 @@ int main(int argc, char** argv)
                             delete[] v;
                         knn_lines.clear();
 
-                        create_tree_gui(rectangles,points,polygons,rt.get_root(),length,0);
+                        create_tree_gui(rectangles,points,polygons,hb.get_root(),length,0);
                         delete click;
                         delete click_box;
 
@@ -215,7 +225,7 @@ int main(int argc, char** argv)
                 }else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
                     Point* pnt = new Point(x,y);
                     // cout<<"resultados: "<<endl;
-                    auto result = rt.knn(pnt,nn); 
+                    auto result = hb.knn(pnt,nn); 
                     delete pnt;
 
 
@@ -246,7 +256,7 @@ int main(int argc, char** argv)
 
                 }
 
-                // rt.show_rtree();
+                hb.show_tree();
 
             }
         }

@@ -3,7 +3,7 @@ DEBUGGER = gdb
 SFML_FLAGS = -lsfml-graphics -lsfml-window -lsfml-system
 DEBUG_FLAGS = -g
 EXECUTABLE = sfml-app
-TARGETS = ./main.cpp
+TARGETS = ./main_hilbert.cpp
 
 run: build
 	./$(EXECUTABLE)
