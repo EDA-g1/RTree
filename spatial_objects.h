@@ -106,6 +106,14 @@ struct MBB : public SpatialObj{
         return low.y;
     }
 
+    Point mid_point(){
+        int x = (getHighX() + getLowX())/2;
+        int y = (getHighY() + getLowY())/2;
+
+        return Point(x,y);
+
+    }
+
     double requiredMBBIncrease(SpatialObj* s) const {
         MBB new_mbb(
                 Point(

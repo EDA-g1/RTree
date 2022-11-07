@@ -133,7 +133,14 @@ int main(int argc, char** argv)
                         mode = Mode::insert_polygon;
                     }else if(mode == Mode::insert_polygon){
                         if(points_for_polygon.size() >= 3){
-                            // hb.insert(new Polygon(points_for_polygon),Status::polygon);
+                            Polygon* new_p = new Polygon(points_for_polygon);
+                            Point mp = new_p->center();
+                            int y_p = (mp.y/ (double) length)*(1 << k_depth);
+                            int x_p = (mp.x/ (double) length)*(1 << k_depth);
+                            int h_index = hindex(x_p,y_p,2*k_depth);
+                            hb.insert(new Polygon(points_for_polygon),Status::polygon,h_index);
+
+                            delete new_p;
                             rectangles.clear();
                             polygons.clear();
                             knn_lines.clear();
