@@ -108,7 +108,7 @@ struct HilbertNode
     {
         sort(children.begin(), children.end(), [](HilbertNode *a, HilbertNode *b)
              { return a->hindex <= b->hindex; });
-        hindex = children.back()->hindex;
+        if(children.size()) hindex = children.back()->hindex;
     }
 };
 
@@ -458,7 +458,7 @@ class HB_Tree
     void fix_tree(HilbertNode*L){
 
         if(L->is_root){
-            if(L->children.size() == 1){
+            if(L->status != Status::leaf_mbb && L->children.size() == 1){
                 root = root->children[0];
                 root->is_root = 1;
                 root->parent = nullptr;
@@ -533,8 +533,16 @@ public:
 
             HilbertNode* parent = supposed_node_to_delete->parent;
 
+            // cout<<"||||||antes||||||\n";
+            // show_tree();
             parent->find_and_delete(supposed_node_to_delete);
+            parent->adjustMBB();
+            parent->sort_nodes();
+            adjustTree(parent,nullptr);
+            // cout<<"|||||despues|||"<<endl;
+            // show_tree();
 
+            
             fix_tree(parent);
 
         }

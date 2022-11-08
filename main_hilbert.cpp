@@ -215,7 +215,7 @@ int main(int argc, char** argv)
                         pts.push_back({(int) x-rad,(int) y+rad});
                         Point* click = new Point(x,y);
                         Polygon* click_box = new Polygon(pts);
-                        // hb.remove_spatialobj(click,click_box);
+                        hb.remove_spatialobj(click,click_box);
 
                         rectangles.clear();
                         points.clear();
@@ -229,7 +229,31 @@ int main(int argc, char** argv)
                         delete click_box;
 
                     }
-                }else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
+                }
+                // else if(Mouse::isButtonPressed(Mouse::Right)){
+                //         vector<Point> pts;
+                //         int rad = 4;
+                //         pts.push_back({(int) x-rad,(int) y-rad});
+                //         pts.push_back({(int) x+rad,(int) y-rad});
+                //         pts.push_back({(int) x+rad,(int) y+rad});
+                //         pts.push_back({(int) x-rad,(int) y+rad});
+                //         Point* click = new Point(x,y);
+                //         Polygon* click_box = new Polygon(pts);
+                //         hb.remove_spatialobj(click,click_box);
+
+                //         rectangles.clear();
+                //         points.clear();
+                //         polygons.clear();
+                //         for(auto&v : knn_lines)
+                //             delete[] v;
+                //         knn_lines.clear();
+
+                //         create_tree_gui(rectangles,points,polygons,hb.get_root(),length,0);
+                //         delete click;
+                //         delete click_box;
+                
+                // }
+                else if(Mouse::isButtonPressed(Mouse::Right) && nn > 0){
                     Point* pnt = new Point(x,y);
                     // cout<<"resultados: "<<endl;
                     auto result = hb.knn(pnt,nn); 
