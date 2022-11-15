@@ -11,9 +11,9 @@ COMPLETADO:
 - Choose Subtree
 - choose_split_axis (con perimetro y area para desempate)
 - chose_split_index (con solapamiento y area para desempate)
+- Split
 
 PENDIENTE:
-- split 
 - forced reinsert
 ... todo lo de insert
 */
