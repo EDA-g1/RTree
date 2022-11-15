@@ -147,7 +147,7 @@ struct Node{
         double cost_perimeter = 0;
         double cost_area = 0;
         // For each split in the axis
-        for (int split = m; split<=M-m; split++) {
+        for (int split = m; split<=M+1-m; split++) {
             // Create empty MBB
             MBB left{};
             MBB right{};
@@ -155,11 +155,11 @@ struct Node{
             // FILL LEFT AND RIGHT NODES
             int i = 0;
             // Left
-            for (; i<split; i++) {
+            for (; i < split; i++) {
                 left.expandMBB(this->children[i]->obj);
             }
             // Right
-            for (; i<M; i++) {
+            for (; i <= M; i++) {
                 right.expandMBB(this->children[i]->obj);
             }
 
@@ -241,7 +241,7 @@ struct Node{
         double min_cost_area    = numeric_limits<double>::max();
         int index;
 
-        for (int split = m; split<=M-m; split++) {
+        for (int split = m; split<=M+1-m; split++) {
             // Create empty MBB
             MBB left{};
             MBB right{};
@@ -253,7 +253,7 @@ struct Node{
                 left.expandMBB(this->children[i]->obj);
             }
             // Right
-            for (; i<M; i++) {
+            for (; i<=M; i++) {
                 right.expandMBB(this->children[i]->obj);
             }
 
@@ -535,57 +535,37 @@ Node* choose_subtree(Node*& u,SpatialObj* sobj){
 
 
 Node* split(Node*& u){
-    // Elegir las dos semillas tal que esten lo más separadas posible
-    Node* sem_a = nullptr;
-    Node* sem_b = nullptr;
-    double max_d = numeric_limits<double>::lowest();
+    int axis  = u->choose_split_axis();
+    int index = u->choose_split_index(axis); 
 
-    for (int i = 0; i < u->children.size(); ++i) {
-        Node* a = u->children[i];
-        for (int j = i+1; j < u->children.size(); ++j) {
-            Node* b = u->children[j];
-            double dist = a->obj->getDistanceTo(b->obj);
-            if (dist >= max_d) {
-                sem_a = a;
-                sem_b = b;
-                max_d = dist;
-            }
-        }
-    }
     // Inicializar nuevos u y v
     Node* new_u = new Node;
     new_u->status = u->status;
     new_u->parent = u->parent;
     new_u->is_root = u->is_root;
-    new_u->set_as_children(sem_a);
-    Node* v = new Node;
-    v->is_root = false;
-    v->status = u->status;
-    v->set_as_children(sem_b);
+    Node* new_v = new Node;
+    new_v->is_root = false;
+    new_v->status = u->status;
 
-    // Insertar al que menor ampliación requiera
-
-    for (auto &child : u->children) {
-        if (child != sem_a && child != sem_b) {
-            double increase_u = ((MBB*)u->obj)->requiredMBBIncrease(child->obj);
-            double increase_v = ((MBB*)v->obj)->requiredMBBIncrease(child->obj);
-            if(new_u->children.size() >= M-m+1){
-                v->set_as_children(child);
-            }else if(v->children.size() >= M-m+1){
-                new_u->set_as_children(child);
-            }
-            else if (increase_u < increase_v) {
-                new_u->set_as_children(child);
-            } else {
-                v->set_as_children(child);
-            }
-        }
+    
+    // FILL NEW NODES
+    int i = 0;
+    // Left
+    for (; i<index; i++) {
+        new_u->set_as_children(u->children[i]);
     }
+    // Right
+    for (; i<=M; i++) {
+        new_v->set_as_children(u->children[i]);
+    }
+
+    // Clear children
     u->children.clear();
+
     // Set new u and return
     Node* tmp = u;
     u = new_u;
-    // UPDATE u IN PARENT
+    // IMPORTANT: UPDATE u IN PARENT
     if (u->parent) {
         for (auto &child : u->parent->children) {
             if (child == tmp) {
@@ -596,9 +576,8 @@ Node* split(Node*& u){
     }
     delete tmp;
 
-
-
-    return  v;
+    // Return new v
+    return  new_v;
 }
 
 
