@@ -80,6 +80,11 @@ struct MBB : public SpatialObj{
     Point low;
     Point high;
 
+    MBB():
+        low{numeric_limits<int>::max(), numeric_limits<int>::max()},
+        high{0,0}
+        {}
+
     MBB(Point _low, Point _high):
         low{std::move(_low)},
         high{std::move(_high)}
