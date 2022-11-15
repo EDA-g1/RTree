@@ -401,7 +401,7 @@ struct Node{
 
 
 void printNode(vector<Node*> v); 
-Node * insert(Node*& u, SpatialObj* p,Status _status);
+Node * insert(Node*& u, Node* node, int level, int depth);
 Node* handle_overflow(Node*& u);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
@@ -422,30 +422,36 @@ void printNode(vector<Node*> v) {
 }
 
 
+// -----------------------------------------------------------------------------
+//                                   INSERT
+// -----------------------------------------------------------------------------
 
-Node * insert(Node*& u, SpatialObj* p,Status _status){
-    if(u->status == Status::leaf_mbb){
-        // Add p to u
-        Node* new_node = new Node;
-        new_node->obj = p;
-        new_node->status = _status;
-        u->set_as_children(new_node);
+// INSERT NODE
+Node * insert(Node*& u, Node* node, int level, int depth){
+    
+    if (level != depth) {
+        // Descide which subtree under u should we insert node into
+        Node* v = choose_subtree(u,node->obj);
+        return insert(v,node,level+1,depth);
+    }
+    else {
+        // Correct level to insert
+
+        // Add node to u
+        u->set_as_children(node);
 
         // If u overflows, then handle
         if(u->is_overflown()){
             return handle_overflow(u);
         }
-        else {
-            return nullptr;
-        }
-    }else{
-        // Descide which subtree under u should we insert p into
-        Node* v = choose_subtree(u,p);
-        return insert(v,p,_status);
+        else {return nullptr;}
     }
 }
 
 
+// -----------------------------------------------------------------------------
+//                                        ...
+// -----------------------------------------------------------------------------
 
 //orden 2 => n = 4
 
@@ -588,7 +594,7 @@ Node* split(Node*& u){
 
 
 // -----------------------------------------------------------------------------
-//                              INSERT & REINSERT
+//                               REINSERT
 // -----------------------------------------------------------------------------
 void reinsert(Node*& u){
     double p = 0.3;
@@ -648,6 +654,20 @@ void show(Node* node, string prefix){
 class StarRTree{
 private:
     Node* root;
+
+    int get_depth() {
+        if (root == nullptr) {return 0;}
+
+        int i = 1;
+        auto node = root;
+        while (node->status != Status::leaf_mbb) {
+            i++;
+            node=node->children[0];
+        }
+        cout << "DEPTH:"<<i<<endl;
+        return i;
+    }
+
 public:
     StarRTree() {
         root = new Node;
@@ -657,8 +677,15 @@ public:
     }
 
     void insert_spatialobj(SpatialObj* sobj,Status _status) {
+        // Get depth
+        int leaf_depth = this->get_depth();
+        // Create node for SpatialObj
+        Node* new_node = new Node;
+        new_node->obj = sobj;
+        new_node->status = _status;
+        // Insert node to tree
         Node* new_root;
-        new_root = insert(root, sobj,_status);
+        new_root = insert(root, new_node, 1, leaf_depth);
         if (new_root) {
             root = new_root;
         }
