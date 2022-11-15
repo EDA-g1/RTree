@@ -14,8 +14,10 @@ COMPLETADO:
 - Split
 
 PENDIENTE:
-- forced reinsert
-... todo lo de insert
+- insert_data
+- insert
+- overflow_treatment
+- reinsert
 */
 
 // Node
@@ -350,6 +352,8 @@ struct Node{
         return best_index;
     }
 
+
+
     // -----------------------------------------------------------------------------
     //                              ....
     // -----------------------------------------------------------------------------
@@ -581,6 +585,34 @@ Node* split(Node*& u){
 }
 
 
+
+
+// -----------------------------------------------------------------------------
+//                              INSERT & REINSERT
+// -----------------------------------------------------------------------------
+void reinsert(Node*& u){
+    double p = 0.3;
+    // Sort by distance to center of rectangle (descending order)
+    Point center = ((MBB*) (u->obj))->center();
+    auto sort_center_dist  = [center](Node *a, Node *b) { return a->obj->getDistanceTo((SpatialObj*) &center)  >= b->obj->getDistanceTo((SpatialObj*) &center) ; };
+    sort(u->children.begin(),u->children.end(), sort_center_dist);
+    // Remove P entries and adjust rectangle
+    int split =  M * p;
+    vector<Node*> new_children(u->children.begin(), u->children.begin() + split);
+    vector<Node*> reinsert_children(u->children.begin()+split, u->children.end());
+    u->children = new_children;
+    u->adjustMBB();
+    // Reinsert points
+    for (auto &c : reinsert_children) {
+        // TODO: Reinsert
+        //insert(u->parent, c, STATUS???)
+    }
+}
+
+// -----------------------------------------------------------------------------
+//                              --------
+// -----------------------------------------------------------------------------
+    
 void show(Node* node, string prefix){
     if (node->children.empty()) {
         cout << "EMPTY TREE" << endl;
