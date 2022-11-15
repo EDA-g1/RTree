@@ -13,9 +13,10 @@ COMPLETADO:
 - chose_split_index (con solapamiento y area para desempate)
 - Split
 
-PENDIENTE:
 - insert_data
 - insert
+
+PENDIENTE:
 - overflow_treatment
 - reinsert
 */
@@ -401,10 +402,12 @@ struct Node{
 
 
 void printNode(vector<Node*> v); 
-Node * insert(Node*& u, Node* node, int level, int depth);
-Node* handle_overflow(Node*& u);
+Node * insert(Node*& u, Node* node, int level, int depth, vector<bool>& reinsertion_levels);
+Node* handle_overflow(Node*& u, int level, vector<bool>& reinsertion_levels);
 Node* split(Node*& u);
 Node* choose_subtree(Node*& u,SpatialObj* p);
+void reinsert(Node*& u, int level, vector<bool>& reinsertion_levels);
+void show(Node* node, string prefix);
 
 vector<Node*> remove(SpatialObj* p);
 vector<Node*> condenseTree(Node* u);
@@ -427,12 +430,12 @@ void printNode(vector<Node*> v) {
 // -----------------------------------------------------------------------------
 
 // INSERT NODE
-Node * insert(Node*& u, Node* node, int level, int depth){
+Node * insert(Node*& u, Node* node, int level, int depth, vector<bool>& reinsertion_levels){
     
     if (level != depth) {
         // Descide which subtree under u should we insert node into
         Node* v = choose_subtree(u,node->obj);
-        return insert(v,node,level+1,depth);
+        return insert(v,node,level+1,depth, reinsertion_levels);
     }
     else {
         // Correct level to insert
@@ -442,7 +445,7 @@ Node * insert(Node*& u, Node* node, int level, int depth){
 
         // If u overflows, then handle
         if(u->is_overflown()){
-            return handle_overflow(u);
+            return handle_overflow(u, level, reinsertion_levels);
         }
         else {return nullptr;}
     }
@@ -503,28 +506,39 @@ bool contains(SpatialObj* obj, SpatialObj* other) {
 }
 
 
-Node* handle_overflow(Node*& u) {
-    Node* v = split(u); // u is left, v is right
-    if (u->is_root) {
-        // Create new root with u and v as children
-        Node* new_root = new Node;
-        new_root->is_root = true;
-        new_root->status = Status::mbb;
-        new_root->parent = nullptr;
-        // u->is_root= false;
-        new_root->set_as_children(u);
-        new_root->set_as_children(v);
-        return new_root;
+Node* handle_overflow(Node*& u, int level, vector<bool>& reinsertion_levels) {
+
+    if (level != 1 && !reinsertion_levels[level]) {
+        // TODO: VERIFICAR
+        // If not root and first reinsertion => REINSERT
+        reinsertion_levels[level] = true;
+        reinsert(u, level, reinsertion_levels);
+        return nullptr;
     }
     else {
-        Node* w = u->parent;
-        w->set_as_children(v);
-        // If w overflows, then handle
-        if (w->is_overflown()) {
-            return handle_overflow(w);
+        // Else: Split
+        Node* v = split(u); // u is left, v is right
+        if (u->is_root) {
+            // Create new root with u and v as children
+            Node* new_root = new Node;
+            new_root->is_root = true;
+            new_root->status = Status::mbb;
+            new_root->parent = nullptr;
+            // u->is_root= false;
+            new_root->set_as_children(u);
+            new_root->set_as_children(v);
+            return new_root;
         }
         else {
-            return nullptr;
+            Node* w = u->parent;
+            w->set_as_children(v);
+            // If w overflows, then handle
+            if (w->is_overflown()) {
+                return handle_overflow(w, level, reinsertion_levels);
+            }
+            else {
+                return nullptr;
+            }
         }
     }
 }
@@ -596,7 +610,7 @@ Node* split(Node*& u){
 // -----------------------------------------------------------------------------
 //                               REINSERT
 // -----------------------------------------------------------------------------
-void reinsert(Node*& u){
+void reinsert(Node*& u, int level, vector<bool>& reinsertion_levels){
     double p = 0.3;
     // Sort by distance to center of rectangle (descending order)
     Point center = ((MBB*) (u->obj))->center();
@@ -604,14 +618,19 @@ void reinsert(Node*& u){
     sort(u->children.begin(),u->children.end(), sort_center_dist);
     // Remove P entries and adjust rectangle
     int split =  M * p;
-    vector<Node*> new_children(u->children.begin(), u->children.begin() + split);
-    vector<Node*> reinsert_children(u->children.begin()+split, u->children.end());
+    cout << "REINSERT SPLIT SIZE:" << split << endl;
+    vector<Node*> reinsert_children(u->children.begin(), u->children.begin() + split);
+    vector<Node*> new_children(u->children.begin()+split, u->children.end());
     u->children = new_children;
     u->adjustMBB();
     // Reinsert points
+    cout << "NEW CHLD VECTOR SIZE:" << new_children.size() << endl;
+    cout << "REINSERT VECTOR SIZE:" << reinsert_children.size() << endl;
     for (auto &c : reinsert_children) {
-        // TODO: Reinsert
-        //insert(u->parent, c, STATUS???)
+        // TODO: Verificar
+        cout << "REINSERT: "; c->obj->display();
+        cout << endl;
+        insert(u->parent, c, level-1, level, reinsertion_levels);
     }
 }
 
@@ -683,13 +702,15 @@ public:
         Node* new_node = new Node;
         new_node->obj = sobj;
         new_node->status = _status;
+        // Init reinsertion levels
+        auto reinsertion_levels = vector<bool>(leaf_depth,false);
         // Insert node to tree
         Node* new_root;
-        new_root = insert(root, new_node, 1, leaf_depth);
+        new_root = insert(root, new_node, 1, leaf_depth, reinsertion_levels);
         if (new_root) {
             root = new_root;
         }
-        //show_rtree();
+        show_rtree();
     }
 
 
