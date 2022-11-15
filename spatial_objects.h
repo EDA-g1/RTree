@@ -114,6 +114,7 @@ struct MBB : public SpatialObj{
 
     }
 
+    // EXPANSION DE PERIMETRO
     double requiredMBBIncrease(SpatialObj* s) const {
         MBB new_mbb(
                 Point(
@@ -130,13 +131,45 @@ struct MBB : public SpatialObj{
         int old_perimeter = 2*(this->high.x - this->low.x) + 2*(this->high.y - this->low.y) ;
         int new_perimeter = 2*(new_mbb.high.x - new_mbb.low.x) + 2*(new_mbb.high.y - new_mbb.low.y) ;
 
-
-        double old_h = new_mbb.getArea()-this->getArea();
         double new_h = new_perimeter - old_perimeter;
 
         //heuristic for box expansion
-        return  heuristica ? old_h : new_h;
+        return  new_h;
     }
+
+    // EXPANSION DE AREA
+    double requiredMBBIncreaseArea(SpatialObj* s) const {
+        MBB new_mbb(
+                Point(
+                        min(s->getLowX(), this->low.x),
+                        min(s->getLowY(), this->low.y)
+                ),
+                Point(
+                        max(s->getHighX(), this->high.x),
+                        max(s->getHighY(), this->high.y)
+                )
+        );
+
+
+        int old_perimeter = 2*(this->high.x - this->low.x) + 2*(this->high.y - this->low.y) ;
+        int new_perimeter = 2*(new_mbb.high.x - new_mbb.low.x) + 2*(new_mbb.high.y - new_mbb.low.y) ;
+
+
+        double area_h = new_mbb.getArea()-this->getArea();
+
+        return  area_h;
+    }
+
+
+
+    // EXAPANDIR PARA INCLUIR UN OBJETO
+    void expandMBB(SpatialObj* s) {
+        this->low.x = min(s->getLowX(), this->low.x);
+        this->high.x = max(s->getHighX(), this->high.x);
+        this->low.y = min(s->getLowY(), this->low.y);
+        this->high.y = max(s->getHighY(), this->high.y);
+    }
+
 
 
     Point center(){
