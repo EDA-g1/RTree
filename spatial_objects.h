@@ -89,6 +89,10 @@ struct MBB : public SpatialObj{
         return (high.x-low.x) * (high.y-low.y);
     }
 
+    double getPerimeter() const {
+        return 2*((high.x-low.x) + (high.y-low.y));
+    }
+
     void display() override {
         cout << "MBB: { (" << getLowX() << "," << getLowY() << ") , (" << getHighX() << "," << getHighY() << ") }";
     }

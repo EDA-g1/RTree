@@ -9,9 +9,13 @@ AVANCE
 
 COMPLETADO:
 - Choose Subtree
+- choose_split_axis
 
 PENDIENTE:
-
+- chose_split_index (con solapamiento y area para desempate)
+- split 
+- forced reinsert
+... todo lo de insert
 */
 
 // Node
@@ -64,7 +68,7 @@ struct Node{
     }
 
     // -----------------------------------------------------------------------------
-    //                              HEURISTICS
+    //                              HEURISTICS CHOOSESUBTREE
     // -----------------------------------------------------------------------------
 
     double overlap_enlargment_cost(Node* child, SpatialObj* p) {
@@ -135,6 +139,113 @@ struct Node{
         // Return Selected
         return return_node;
     }
+
+    // -----------------------------------------------------------------------------
+    //                              HEURISTICS SPLIT
+    // -----------------------------------------------------------------------------   
+    void split_axis_cost(double &return_area, double &return_perimeter) {
+        double cost_perimeter = 0;
+        double cost_area = 0;
+        for (int split = m; split<=M-m; split++) {
+            MBB left{{0,0},{0,0}};
+            MBB right{{0,0},{0,0}};
+
+            int i = 0;
+            int max_x, max_y, min_x, min_y;
+
+            // FILL LEFT
+            max_y = 0; max_x = 0; min_y = numeric_limits<int>::max(); min_x = numeric_limits<int>::max();
+            for (; i<m; i++) {
+                max_y = max(this->children[i]->obj->getHighY(), max_y);
+                max_x = max(this->children[i]->obj->getHighX(), max_x);
+                min_x = min(this->children[i]->obj->getLowX(), min_x);
+                min_y = min(this->children[i]->obj->getLowY(), min_y);
+            }
+            left.low.x = min_x;
+            left.low.y = min_y;
+            left.high.x = max_x;
+            left.high.y = max_y;
+
+            // FILL RIGHT
+            max_y = 0; max_x = 0; min_y = numeric_limits<int>::max(); min_x = numeric_limits<int>::max();
+            for (; i<M; i++) {
+                max_y = max(this->children[i]->obj->getHighY(), max_y);
+                max_x = max(this->children[i]->obj->getHighX(), max_x);
+                min_x = min(this->children[i]->obj->getLowX(), min_x);
+                min_y = min(this->children[i]->obj->getLowY(), min_y);
+            }
+            right.low.x = min_x;
+            right.low.y = min_y;
+            right.high.x = max_x;
+            right.high.y = max_y;
+
+            // CALCULATE PERIMETERS AND AREAS
+            double perimeter = left.getPerimeter() + right.getPerimeter();
+            double area = left.getArea() + right.getArea();
+            cost_perimeter += perimeter;
+            cost_area += area;
+        }
+        return_area = cost_area;
+        return_perimeter = cost_perimeter;
+    }
+
+    int choose_split_axis(){
+        int axis;
+        double min_perimeter_cost, min_area_cost;
+        double total_perimeter_cost, total_area_cost;
+        double return_perimeter_cost, return_area_cost;
+
+        // --- X AXIS ---
+        total_area_cost = 0; total_perimeter_cost = 0;
+        // Sort by low X
+        sort(this->children.begin(),this->children.end(), [](Node *a, Node *b)
+             { return a->obj->getLowX() <= b->obj->getLowX(); });
+                MBB* mbb = (MBB*) obj;
+        this->split_axis_cost(return_area_cost, return_perimeter_cost);
+        total_area_cost+=return_area_cost; total_perimeter_cost+=return_perimeter_cost;
+        // Sort by high X
+        sort(this->children.begin(),this->children.end(), [](Node *a, Node *b)
+             { return a->obj->getHighX() <= b->obj->getHighX(); });
+        this->split_axis_cost(return_area_cost, return_perimeter_cost);
+        total_area_cost+=return_area_cost; total_perimeter_cost+=return_perimeter_cost;
+        // Set x axis by default
+        axis = 0;
+        min_perimeter_cost = total_perimeter_cost; min_area_cost = total_area_cost;
+
+
+        // --- Y AXIS ---
+        total_area_cost = 0; total_perimeter_cost = 0;
+        // Sort by low Y
+        sort(this->children.begin(),this->children.end(), [](Node *a, Node *b)
+             { return a->obj->getLowY() <= b->obj->getLowY(); });
+        this->split_axis_cost(return_area_cost, return_perimeter_cost);
+        total_area_cost+=return_area_cost; total_perimeter_cost+=return_perimeter_cost; 
+        // Sort by high Y
+        sort(this->children.begin(),this->children.end(), [](Node *a, Node *b)
+             { return a->obj->getHighY() <= b->obj->getHighY(); });
+        this->split_axis_cost(return_area_cost, return_perimeter_cost);
+        total_area_cost+=return_area_cost; total_perimeter_cost+=return_perimeter_cost;
+        // Compare if better than other axis
+        if (total_perimeter_cost < min_perimeter_cost) {
+            min_perimeter_cost = total_perimeter_cost;
+            min_area_cost = total_area_cost;
+            axis = 1;
+        } 
+        else if ( total_perimeter_cost == min_perimeter_cost && total_area_cost < min_area_cost ) {
+            min_perimeter_cost = total_perimeter_cost;
+            min_area_cost = total_area_cost;
+            axis = 1;
+        }
+        // RETURN SELECTED AXIS
+        return axis;
+    }
+
+
+    // -----------------------------------------------------------------------------
+    //                              ....
+    // -----------------------------------------------------------------------------
+
+
 
 
 
