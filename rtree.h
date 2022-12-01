@@ -5,8 +5,6 @@ struct Node;
 
 
 
-
-
 //Node
 struct Node{
     Node* parent= nullptr;
@@ -62,11 +60,7 @@ struct Node{
         }else{
             updateMBB(u);
         }
-        // Update parent MBB
-        // if (parent) {
-        //     parent->updateMBB(this);
-        // }
-        // Insert
+ 
         this->children.push_back(u);
     }
 
@@ -129,9 +123,8 @@ Node * insert(Node*& u, SpatialObj* p,Status _status){
 
 
 
-//orden 2 => n = 4
 
-
+//eliminar el nodo n de v
 void eraseNode(vector<Node*> &v, Node* &n) {
         int pos = -1;
         for (int i = 0; i < v.size(); i++) {
@@ -144,8 +137,6 @@ void eraseNode(vector<Node*> &v, Node* &n) {
 bool eraseObject(vector<Node*> &v, SpatialObj* p) {
     int pos = -1;
     for (int i = 0; i < v.size(); i++) {
-        // v[i]->obj->display();
-        // cout<<endl;
         // encontrar primer nodo contenido por el objeto p 
         if(v[i]->obj == p){ 
                 pos = i;
@@ -358,7 +349,6 @@ public:
         if (new_root) {
             root = new_root;
         }
-        //show_rtree();
     }
 
 
@@ -380,30 +370,19 @@ public:
         pq.push({-source->getDistanceTo(root->obj),root});
         vector<Node*> result;
 
-        // int iter = 0;
         while(!pq.empty()) {
             pair<double,Node*> front = pq.top();
             pq.pop();
-            // cout<<"iter: "<<iter<<endl;
-            // ++iter;
-            // front.second->obj->display();
-            // cout<<" "<<front.first<<endl;
             if(front.second->status == Status::polygon || front.second->status == Status::point){
                 result.push_back(front.second);
-                // cout<<front.first<<endl;
                 if(result.size() == n)
                     break;
  
             }else{
-                // cout<<"adding childs: "<<endl;
                 for(auto&c : front.second->children){
                     pq.push({-source->getDistanceTo(c->obj),c});
-                    // cout<<(-source->getDistanceTo(c->obj))<<" ";
-                    // c->obj->display();
-                    // cout<<endl;
                     
                 }
-                // cout<<"finished"<<endl;
             }
             
         }
@@ -442,11 +421,7 @@ public:
     void remove_spatialobj(SpatialObj* click,SpatialObj* click_box ) {
         if(root->obj == nullptr || (root->status == Status::leaf_mbb && root->children.size() == 0))
             return;
-        // eliminar punto y reinsertar nodos que hicieron underflow
         Node* supposed_node_to_delete = knn(click,1)[0];
-        // cout<<"resultado"<<endl;
-        // supposed_node_to_delete->obj->display();
-        // cout<<endl;
 
 
         if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
@@ -459,75 +434,6 @@ public:
             for (auto &node: Q) {
                     insert_spatialobj(node->obj, node->status);
             }
-        }
-
-   }
-
-
-   vector<Node*> df_knn(SpatialObj* source,int n){
-        priority_queue<pair<double,Node*>> pq;
-        stack<Node*> s;
-        // pq.push({-source->getDistanceTo(root->obj),root});
-        s.push(root);
-
-
-
-        while(!s.empty()){
-
-            Node* actual = s.top();
-            s.pop();
-
-            for(auto&c:actual->children){
-
-                int delta_x = (actual->obj->getHighX() - actual->obj->getLowX())/2;
-                int delta_y = (actual->obj->getHighY() - actual->obj->getLowY())/2;
-
-                Point* mp = new Point(delta_x,delta_y);
-                if(actual->status == Status::leaf_mbb){
-
-                    if(pq.size() < n){
-
-                        pq.push({source->getDistanceTo(c->obj),c});
-                    }else{
-                        auto [Dk,peor] = pq.top();
-
-
-                        if(Dk + c->obj->getDistanceTo(mp) > source->getDistanceTo(mp)){
-                            pq.pop();
-                            pq.push({source->getDistanceTo(c->obj),c});
-                        }
-
-                    }
-                }else{
-
-                    if(pq.size() <  n){
-                        s.push(c);
-                    }
-                    else{
-
-                        auto [Dk,peor] = pq.top();
-                        int vx = (actual->obj->getHighX() - actual->obj->getLowX());
-                        int vy = (actual->obj->getHighY() - actual->obj->getLowY());
-                        int r = sqrt(vx*vx + vy*vy)/2;
-
-                        if(Dk + r > source->getDistanceTo(mp)){
-
-                            s.push(c);
-                        }     
-                    } 
-                }
-
-                delete mp;
-
-            }
-
-        }
-
-        vector<Node*> result;
-
-        while(!pq.empty()){
-            result.push_back(pq.top().second);
-            pq.pop();
         }
 
    }

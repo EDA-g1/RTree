@@ -1,7 +1,6 @@
 #include "spatial_objects.h"
 
 // HilbertHilbertNode
-
 struct HilbertNode
 {
     HilbertNode *parent = nullptr;
@@ -16,6 +15,7 @@ struct HilbertNode
         return this->children.size() > M;
     }
 
+    // ajusta el mbb en base a sus hijos (puede ser que los hijos de los mbbs haya cambiado)
     void adjustMBB()
     {
         MBB *mbb = (MBB *)obj;
@@ -35,28 +35,32 @@ struct HilbertNode
         mbb->high.y = max_y;
     }
 
-    bool find_and_delete(HilbertNode* del){
+    //busca y eliminar el nodo del del nodo actual
+    bool find_and_delete(HilbertNode *del)
+    {
 
         int pos = -1;
-        for (int i = 0; i < children.size(); i++) {
-            // v[i]->obj->display();
-            // cout<<endl;
-            // encontrar primer nodo contenido por el objeto p 
-            if(children[i] == del){ 
-                    pos = i;
-                    break;
+        for (int i = 0; i < children.size(); i++)
+        {
+            // encontrar primer nodo contenido por el objeto p
+            if (children[i] == del)
+            {
+                pos = i;
+                break;
             }
-            
         }
-        if (pos == -1) return false;
+        if (pos == -1)
+            return false;
 
         children.erase(children.begin() + pos);
         delete del->obj;
         delete del;
         return true;
-
     }
 
+
+
+    //actualiza el mbb actual segun u
     void updateMBB(HilbertNode *u) const
     {
         MBB *mbb = (MBB *)obj;
@@ -71,6 +75,7 @@ struct HilbertNode
         }
     }
 
+    //hacer que u sea parte del nodo actual
     void set_as_children(HilbertNode *u)
     {
         // Set as parent
@@ -88,30 +93,24 @@ struct HilbertNode
         {
             updateMBB(u);
         }
-        // Update parent MBB
-        // if (parent) {
-        //     parent->updateMBB(this);
-        // }
-        // Insert
+
         this->children.push_back(u);
     }
 
-    // bool operator==(HilbertNode* other) {
-    //     return ((this->obj->getLowX() == other->obj->getLowX())
-    //             && (this->obj->getLowY() == other->obj->getLowY())
-    //             && (this->obj->getHighX() == other->obj->getHighX())
-    //             && (this->obj->getHighY() == other->obj->getHighY())
-    //             );
-    // }
 
+
+    //sortear los nodos del elemento actual en base al hindex de sus nodos
+    //se actualiza hindex al nodo mas grande
     void sort_nodes()
     {
         sort(children.begin(), children.end(), [](HilbertNode *a, HilbertNode *b)
              { return a->hindex <= b->hindex; });
-        if(children.size()) hindex = children.back()->hindex;
+        if (children.size())
+            hindex = children.back()->hindex;
     }
 };
 
+//mostrar el arbol
 void show(HilbertNode *node, string prefix)
 {
     if (node->children.empty())
@@ -146,6 +145,7 @@ void show(HilbertNode *node, string prefix)
     }
 }
 
+//hindex para coor (x, y) con numero de bits k para el orden actual
 int hindex(int x, int y, int k)
 {
     // (x,y) = coords
@@ -196,19 +196,19 @@ int hindex(int x, int y, int k)
     return (bits << next_k) + hindex(next_x, next_y, next_k);
 }
 
-bool contains(SpatialObj* obj, SpatialObj* other) {
+bool contains(SpatialObj *obj, SpatialObj *other)
+{
     // ver si un nodo contiene al spatial object
     // confirmar que significa contener un objeto
-    return ((obj->getLowX() <= other->getLowX() && other->getLowX() <= obj->getHighX())
-            && (obj->getLowX() <= other->getHighX() && other->getHighX() <= obj->getHighX())
-            && (obj->getLowY() <= other->getLowY() && other->getLowY() <= obj->getHighY())
-            && (obj->getLowY() <= other->getHighY() && other->getHighY() <= obj->getHighY()));
+    return ((obj->getLowX() <= other->getLowX() && other->getLowX() <= obj->getHighX()) && (obj->getLowX() <= other->getHighX() && other->getHighX() <= obj->getHighX()) && (obj->getLowY() <= other->getLowY() && other->getLowY() <= obj->getHighY()) && (obj->getLowY() <= other->getHighY() && other->getHighY() <= obj->getHighY()));
 }
 
+//Arbol actual
 class HB_Tree
 {
     HilbertNode *root;
 
+    //elegir la hoja para insetar el nodo actual
     HilbertNode *choose_leaf(HilbertNode *actual, int h_index)
     {
 
@@ -223,12 +223,12 @@ class HB_Tree
                 return choose_leaf(actual->children[i], h_index);
         }
 
-        // 4
-        // 1 2 3
-
         return choose_leaf(actual->children.back(), h_index);
     }
 
+
+    //conseguir el conjunto de hermanos hasta el hijo N del nodo actual
+    //(el 1 hasta N_
     vector<HilbertNode *> get_S(HilbertNode *N)
     {
 
@@ -253,9 +253,10 @@ class HB_Tree
         return E;
     }
 
-    // N es un padre para insert_node
-    // retorno: un hermano para N
 
+    //hace handle si es que el insert node genera overflow en N
+    // N es un padre para insert_node
+    // retorno: un hermano para N en el caso que no haya espacio en los 1...N nodos
     HilbertNode *handle_overflow(HilbertNode *N, HilbertNode *insert_node)
     {
         HilbertNode *NN = nullptr;
@@ -326,6 +327,7 @@ class HB_Tree
     }
 
     // NN es un hermano para N (estan al mismo nivel)
+    //ajusta el padre de N e insertar NN si es que hubo overflow
     void adjustTree(HilbertNode *N, HilbertNode *NN)
     {
         // status
@@ -373,27 +375,33 @@ class HB_Tree
         adjustTree(n_parent, NN);
     }
 
-    HilbertNode* find_next_sibling(HilbertNode*parent,HilbertNode*N){
+    HilbertNode *find_next_sibling(HilbertNode *parent, HilbertNode *N)
+    {
 
-        for(int i = 0 ; i < parent->children.size();++i){
-            HilbertNode*c  = parent->children[i];
-            if(c == N)
-                return parent->children[i+1];
+        for (int i = 0; i < parent->children.size(); ++i)
+        {
+            HilbertNode *c = parent->children[i];
+            if (c == N)
+                return parent->children[i + 1];
         }
 
         return nullptr;
-
     }
 
 
-    HilbertNode* handle_underflow(HilbertNode* N){
+    //distribuye los hijos de N con los hermanos a su izquierda en el caso
+    //que haya underflow, si no se puede distribuir, se elimina uno de los
+    //hermanos de n
+    HilbertNode *handle_underflow(HilbertNode *N)
+    {
         HilbertNode *parent = N->parent;
         bool posible = 0;
 
         vector<HilbertNode *> hermanos_n = get_S(N);
 
-        if(hermanos_n.size() == 1){
-            hermanos_n.push_back(find_next_sibling(parent,N));
+        if (hermanos_n.size() == 1)
+        {
+            hermanos_n.push_back(find_next_sibling(parent, N));
         }
 
         for (auto &e : hermanos_n)
@@ -403,7 +411,6 @@ class HB_Tree
                 posible = 1;
             }
         }
-
 
         vector<HilbertNode *> total_children;
 
@@ -415,7 +422,8 @@ class HB_Tree
             }
         }
 
-        if(!posible){
+        if (!posible)
+        {
             parent->find_and_delete(hermanos_n.back());
             hermanos_n.pop_back();
         }
@@ -450,15 +458,16 @@ class HB_Tree
         }
 
         return hermanos_n.back();
-
-
     }
 
+    //Si L esta en underflow se encarga de llamar a handle_underflow y lo arregla
+    void fix_tree(HilbertNode *L)
+    {
 
-    void fix_tree(HilbertNode*L){
-
-        if(L->is_root){
-            if(L->status != Status::leaf_mbb && L->children.size() == 1){
+        if (L->is_root)
+        {
+            if (L->status != Status::leaf_mbb && L->children.size() == 1)
+            {
                 root = root->children[0];
                 root->is_root = 1;
                 root->parent = nullptr;
@@ -467,13 +476,14 @@ class HB_Tree
             return;
         }
 
-        if(L->children.size() < m){
+        if (L->children.size() < m)
+        {
 
             L = handle_underflow(L);
             // L->sort_nodes();
             // L->adjustMBB();
 
-            adjustTree(L,nullptr);
+            adjustTree(L, nullptr);
         }
 
         fix_tree(L->parent);
@@ -489,6 +499,8 @@ public:
         root->obj = new MBB(Point(0, 0), Point(0, 0));
     }
 
+
+    //insertar un nodo
     void insert(SpatialObj *new_obj, Status s, int h_index)
     {
 
@@ -516,37 +528,29 @@ public:
         }
     }
 
-
-    void remove_spatialobj(SpatialObj* click,SpatialObj* click_box ) {
-        if(root->obj == nullptr || (root->status == Status::leaf_mbb && root->children.size() == 0))
+    //eliminar un nodo
+    void remove_spatialobj(SpatialObj *click, SpatialObj *click_box)
+    {
+        if (root->obj == nullptr || (root->status == Status::leaf_mbb && root->children.size() == 0))
             return;
         // eliminar punto y reinsertar nodos que hicieron underflow
-        HilbertNode* supposed_node_to_delete = knn(click,1)[0];
-        // cout<<"resultado"<<endl;
-        // supposed_node_to_delete->obj->display();
-        // cout<<endl;
+        HilbertNode *supposed_node_to_delete = knn(click, 1)[0];
 
+        //si el elemento mas cercano es un punto verificar que este dentro de click box
+        //sino, verificar si es que hay interseccion con el punto, sino hay no se elimina
+        if ((supposed_node_to_delete->status == Status::polygon && supposed_node_to_delete->obj->intersection(click_box) > 0) ||
+            (supposed_node_to_delete->status == Status::point && contains(click_box, supposed_node_to_delete->obj)))
+        {
 
-        if((supposed_node_to_delete->status == Status::polygon &&supposed_node_to_delete->obj->intersection(click_box) > 0) ||
-            (supposed_node_to_delete->status == Status::point && contains(click_box,supposed_node_to_delete->obj))){ 
+            HilbertNode *parent = supposed_node_to_delete->parent;
 
-
-            HilbertNode* parent = supposed_node_to_delete->parent;
-
-            // cout<<"||||||antes||||||\n";
-            // show_tree();
             parent->find_and_delete(supposed_node_to_delete);
             parent->adjustMBB();
             parent->sort_nodes();
-            adjustTree(parent,nullptr);
-            // cout<<"|||||despues|||"<<endl;
-            // show_tree();
+            adjustTree(parent, nullptr);
 
-            
             fix_tree(parent);
-
         }
-
     }
 
     void show_tree()

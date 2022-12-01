@@ -16,6 +16,7 @@ vector<Color> clrs = {Color::Red,Color::Green,Color::Blue,Color::Yellow,Color::M
 enum class Mode {insert_points,insert_polygon,delete_obj};
 
 
+
 CircleShape create_point(float x, float y){
     CircleShape punto(3);
     punto.setOrigin(Vector2f(3,3));
