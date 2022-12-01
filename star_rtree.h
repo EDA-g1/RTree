@@ -618,18 +618,18 @@ void reinsert(Node*& u, int level, vector<bool>& reinsertion_levels){
     sort(u->children.begin(),u->children.end(), sort_center_dist);
     // Remove P entries and adjust rectangle
     int split =  M * p;
-    cout << "REINSERT SPLIT SIZE:" << split << endl;
+    /* cout << "REINSERT SPLIT SIZE:" << split << endl; */
     vector<Node*> reinsert_children(u->children.begin(), u->children.begin() + split);
     vector<Node*> new_children(u->children.begin()+split, u->children.end());
     u->children = new_children;
     u->adjustMBB();
     // Reinsert points
-    cout << "NEW CHLD VECTOR SIZE:" << new_children.size() << endl;
-    cout << "REINSERT VECTOR SIZE:" << reinsert_children.size() << endl;
+    /* cout << "NEW CHLD VECTOR SIZE:" << new_children.size() << endl; */
+    /* cout << "REINSERT VECTOR SIZE:" << reinsert_children.size() << endl; */
     for (auto &c : reinsert_children) {
         // TODO: Verificar
-        cout << "REINSERT: "; c->obj->display();
-        cout << endl;
+        /* cout << "REINSERT: "; c->obj->display(); */
+        /* cout << endl; */
         insert(u->parent, c, level-1, level, reinsertion_levels);
     }
 }
@@ -683,7 +683,7 @@ private:
             i++;
             node=node->children[0];
         }
-        cout << "DEPTH:"<<i<<endl;
+        /* cout << "DEPTH:"<<i<<endl; */
         return i;
     }
 
@@ -710,7 +710,7 @@ public:
         if (new_root) {
             root = new_root;
         }
-        show_rtree();
+        /* show_rtree(); */
     }
 
 
@@ -882,6 +882,9 @@ public:
             pq.pop();
         }
 
+	return vector<Node*>{};
+
    }
+
 
 };
