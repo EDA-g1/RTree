@@ -148,6 +148,8 @@ int main(int argc, char** argv)
                         mode = Mode::insert_points;
                     }
 
+                }else if(event.key.code == sf::Keyboard::Key::S){
+                    rt.coeficienteSolapamiento();
                 }else if(event.key.code == sf::Keyboard::Key::W) {
                     cout<<"El nn actual es "<<nn<<endl;
                 }else if(event.key.code == sf::Keyboard::Key::BackSpace){
