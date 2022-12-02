@@ -46,8 +46,8 @@ Correr el ejecutable que resulta de la compilación.
 Los comandos son los siguientes:
 - **Click izquierdo o scroll down del mouse:** añadir un punto (sea independiente o para formar una figura).
 - **Click derecho:** para realizar la busqueda de los k-vecinos más cercanos (por defecto knn = 3).
-- **Mantener presionar la tecla `LShift` en el teclado:** remover una figura con el clik derecho.
-- **Presionar la tecla `q` en el teclado:** modo insercion de poligono, insertar n puntos y luego presionar `q` para insertarlo.
+- **Mantener presionar la tecla `LShift` en el teclado:** remover una figura con el click derecho.
+- **Presionar la tecla `q` en el teclado:** modo inserción de poligono, insertar n puntos y luego presionar `q` para insertarlo.
 - **Presionar un numero:** agrega el dígito del número presionado al final del knn actual. Ej: con knn 1 si se presiona 2 knn se vuelve 12.
 - **Presionar backspace:** elimina el ultimo número presionado para el knn.
 
