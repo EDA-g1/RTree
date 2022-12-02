@@ -44,11 +44,11 @@ make run_srtree
 Correr el ejecutable que resulta de la compilación.
 
 Los comandos son los siguientes:
-- **Click izquierdo o scroll down del mouse:** añadir un punto (sea independiente o para formar una figura)
-- **Click derecho:** para realizar la busqueda de los k-vecinos más cercanos por defecto k = 3
-- **Mantener presionar la tecla `LShift` en el teclado:** remover una figura con el clik derecho
-- **Presionar la tecla `q` en el teclado:** modo insercion de poligono, insertar n puntos y luego presionar `q` para insertarlo
-- **Presionar un numero:** agrega el dígito del número presionado al final del knn actual. Ej: con knn 1 si se presiona 2 knn se vuelve 12 (el valor por defecto del knn es 3).
-- **Presionar backspace:** elimina el ultimo número presionado para el knn 
+- **Click izquierdo o scroll down del mouse:** añadir un punto (sea independiente o para formar una figura).
+- **Click derecho:** para realizar la busqueda de los k-vecinos más cercanos (por defecto knn = 3).
+- **Mantener presionar la tecla `LShift` en el teclado:** remover una figura con el clik derecho.
+- **Presionar la tecla `q` en el teclado:** modo insercion de poligono, insertar n puntos y luego presionar `q` para insertarlo.
+- **Presionar un numero:** agrega el dígito del número presionado al final del knn actual. Ej: con knn 1 si se presiona 2 knn se vuelve 12.
+- **Presionar backspace:** elimina el ultimo número presionado para el knn.
 
 La GUI se actualiza automáticamente dependiendo de alguno de estos inputs.
