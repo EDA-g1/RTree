@@ -43,7 +43,7 @@ make run_srtree
 
 Correr el ejecutable que resulta de la compilación.
 
-Los comandos son los siguiente:
+Los comandos son los siguientes:
 - **Click izquierdo o scroll down del mouse:** añadir un punto (sea independiente o para formar una figura)
 - **Click derecho:** para realizar la busqueda de los k-vecinos más cercanos por defecto k = 3
 - **Mantener presionar la tecla `LShift` en el teclado:** remover una figura con el clik derecho
