@@ -71,7 +71,7 @@ vector<Point> crear_poligono(){
 void insert_SRtree() {
 
   // 3. crear vector de vectores
-  for (int a = 0; a < 20; a++) {
+  for (int a = 0; a < 100; a++) {
     vector<double> times;
 
     StarRTree *rt = new StarRTree();
@@ -254,9 +254,9 @@ void knn_SRtree() {
 
 int main() {
   srand(time(NULL));
-  insert_SRtree();
+  /* insert_SRtree(); */
    //search_SRtree();
-  //remove_SRtree();
+  remove_SRtree();
   //knn_SRtree();
   return 0;
 }

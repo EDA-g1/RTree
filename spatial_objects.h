@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
-#define M 4 
-#define m 2 
+#define M 22 
+#define m 11 
 #define heuristica 0 
 
 

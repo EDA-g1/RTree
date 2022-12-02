@@ -200,10 +200,10 @@ struct Node{
 
 
         // Lambda functions
-        auto sort_low_x  = [](Node *a, Node *b) { return a->obj->getLowX()  <= b->obj->getLowX() ; };
-        auto sort_low_y  = [](Node *a, Node *b) { return a->obj->getLowY()  <= b->obj->getLowY() ; };
-        auto sort_high_x = [](Node *a, Node *b) { return a->obj->getHighX() <= b->obj->getHighX(); };
-        auto sort_high_y = [](Node *a, Node *b) { return a->obj->getHighY() <= b->obj->getHighY(); };
+        auto sort_low_x  = [](Node *a, Node *b) { return a->obj->getLowX()  < b->obj->getLowX() ; };
+        auto sort_low_y  = [](Node *a, Node *b) { return a->obj->getLowY()  < b->obj->getLowY() ; };
+        auto sort_high_x = [](Node *a, Node *b) { return a->obj->getHighX() < b->obj->getHighX(); };
+        auto sort_high_y = [](Node *a, Node *b) { return a->obj->getHighY() < b->obj->getHighY(); };
 
         // --- X AXIS ---
         // Sort by low X
@@ -303,19 +303,19 @@ struct Node{
         // Create sort functions based on axis index
         auto sort_low = [axis](Node *a, Node *b) {
             if (axis == 0) {
-                return a->obj->getLowX() <= b->obj->getLowX();
+                return a->obj->getLowX() < b->obj->getLowX();
             }
             else {
-                return a->obj->getLowY() <= b->obj->getLowY(); 
+                return a->obj->getLowY() < b->obj->getLowY(); 
             }
         };
 
         auto sort_high = [axis](Node *a, Node *b) {
             if (axis == 0) {
-                return a->obj->getHighX() <= b->obj->getHighX();
+                return a->obj->getHighX() < b->obj->getHighX();
             }
             else {
-                return a->obj->getHighY() <= b->obj->getHighY(); 
+                return a->obj->getHighY() < b->obj->getHighY(); 
             }
         };
        
@@ -629,7 +629,7 @@ void reinsert(Node*& u, int level, vector<bool>& reinsertion_levels){
     double p = 0.3;
     // Sort by distance to center of rectangle (descending order)
     Point center = ((MBB*) (u->obj))->center();
-    auto sort_center_dist  = [center](Node *a, Node *b) { return a->obj->getDistanceTo((SpatialObj*) &center)  >= b->obj->getDistanceTo((SpatialObj*) &center) ; };
+    auto sort_center_dist  = [center](Node *a, Node *b) { return a->obj->getDistanceTo((SpatialObj*) &center)  > b->obj->getDistanceTo((SpatialObj*) &center) ; };
     sort(u->children.begin(),u->children.end(), sort_center_dist);
     // Remove P entries and adjust rectangle
     int split =  M * p;
