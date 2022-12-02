@@ -341,30 +341,7 @@ void show(Node* node, string prefix){
     }
 }
 
-struct Limits{
-    std::size_t begin, end;
-};
 
-struct Region{
-    Limits x, y;
-};
-
-Region getLimits(SpatialObj* mbb, std::vector<double>& xValues, std::vector<double>& yValues){
-    Region result;
-    for(std::size_t i = 0; i != xValues.size(); ++i){
-        if(xValues[i] == mbb->getLowX())
-            result.x.begin = i;
-        else if(xValues[i] == mbb->getHighX())
-            result.x.end = i;
-    }
-    for(std::size_t i = 0; i != yValues.size(); ++i){
-        if(yValues[i] == mbb->getLowY())
-            result.y.begin = i;
-        else if(yValues[i] == mbb->getHighY())
-            result.y.end = i;
-    }
-    return result;
-}
 
 
 // RTree

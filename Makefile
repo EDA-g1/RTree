@@ -3,12 +3,12 @@ DEBUGGER = gdb
 SFML_FLAGS = -lsfml-graphics -lsfml-window -lsfml-system
 DEBUG_FLAGS = -g
 EXECUTABLE = sfml-app
-TARGETS = ./main.cpp
+TARGETS = ./main_star.cpp
 
 run: build
 	./$(EXECUTABLE)
 build:
-	$(CC) $(TARGETS) -o $(EXECUTABLE) $(SFML_FLAGS) -I C:\mingw32\include
+	$(CC) $(TARGETS) -o $(EXECUTABLE) $(SFML_FLAGS) 
 debug: debug_build
 	$(DEBUGGER) $(EXECUTABLE)
 debug_build:

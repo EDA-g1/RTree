@@ -159,7 +159,11 @@ int main(int argc, char** argv)
 
                 }else if(event.key.code == sf::Keyboard::Key::W) {
                     cout<<"El nn actual es "<<nn<<endl;
-                }else if(event.key.code == sf::Keyboard::Key::BackSpace){
+                }else if (event.key.code == sf::Keyboard::Key::S){
+                    hb.coeficienteSolapamiento();
+
+                }
+                else if(event.key.code == sf::Keyboard::Key::BackSpace){
                     nn = nn == 0 ? 0 : nn/10;
                 }
                 else if(event.key.code == sf::Keyboard::Key::LShift && mode != Mode::insert_polygon){
@@ -288,7 +292,7 @@ int main(int argc, char** argv)
 
                 }
 
-                hb.show_tree();
+                // hb.show_tree();
 
             }
         }

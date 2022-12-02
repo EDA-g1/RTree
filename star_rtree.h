@@ -1,4 +1,5 @@
 #include "spatial_objects.h"
+#include <set>
 #include <stack>
 
 
@@ -56,6 +57,20 @@ struct Node{
         mbb->low.y = min_y;
         mbb->high.x = max_x;
         mbb->high.y = max_y;
+    }
+
+
+    void getMBBs(std::vector<vector<SpatialObj*>>& result, int level){
+        if(obj){
+            for (auto &c: this->children) {
+                if(c->status != Status::point && c->status != Status::polygon){
+                    result[level].push_back(c->obj);
+                    //std::cout << c->obj->getLowX() << ' ' << c->obj->getLowY() << ' ' << c->obj->getHighX() << ' ' << c->obj->getHighY() << "\n\n" ;
+                    c->getMBBs(result, level+1);
+                }
+            }
+        }
+        else std::cout << "vacio\n";
     }
 
     void updateMBB(Node* u) const {
@@ -687,6 +702,44 @@ private:
         return i;
     }
 
+    double getUnion_intersection(std::vector<SpatialObj*>& mbbs){
+        double unionArea = 0, intersectionArea = 0;
+        std::set<double> xValues, yValues;
+        //xValues.insert(0); yValues.insert(0);
+        
+        for(const auto& mbb: mbbs){
+            xValues.insert(mbb->getLowX()); 
+            xValues.insert(mbb->getHighX());
+            yValues.insert(mbb->getLowY()); 
+            yValues.insert(mbb->getHighY());
+        }
+        
+        std::vector<double> xSegments(xValues.begin(), xValues.end()), ySegments(yValues.begin(), yValues.end());
+        xValues.clear(); yValues.clear();
+        std::vector<std::vector<std::size_t>> matrix (ySegments.size(), std::vector<std::size_t>(xSegments.size(), 0));
+        
+        for(const auto& mbb: mbbs){
+            Region limits = getLimits(mbb, xSegments, ySegments);
+            for(std::size_t i = limits.y.begin; i != limits.y.end; ++i){
+                for(std::size_t j = limits.x.begin; j != limits.x.end; ++j){
+                    matrix[i][j] +=1;
+                }
+            }
+        }
+        
+        for(std::size_t i = 0; i != matrix.size()-1; ++i){
+            for(std::size_t j = 0; j != matrix[i].size()-1; ++j){
+                if(matrix[i][j] > 0)
+                    unionArea += (xSegments[j+1] - xSegments[j])*(ySegments[i+1]-ySegments[i]);
+                if(matrix[i][j] > 1)
+                    intersectionArea += (xSegments[j+1] - xSegments[j])*(ySegments[i+1]-ySegments[i]);
+            }
+        }
+        cout << "inter  " << intersectionArea << "  union    " << unionArea << '\n';
+        return intersectionArea/unionArea;
+    }
+
+
 public:
     StarRTree() {
         root = new Node;
@@ -816,75 +869,27 @@ public:
    }
 
 
-   vector<Node*> df_knn(SpatialObj* source,int n){
-        priority_queue<pair<double,Node*>> pq;
-        stack<Node*> s;
-        // pq.push({-source->getDistanceTo(root->obj),root});
-        s.push(root);
-
-
-
-        while(!s.empty()){
-
-            Node* actual = s.top();
-            s.pop();
-
-            for(auto&c:actual->children){
-
-                int delta_x = (actual->obj->getHighX() - actual->obj->getLowX())/2;
-                int delta_y = (actual->obj->getHighY() - actual->obj->getLowY())/2;
-
-                Point* mp = new Point(delta_x,delta_y);
-                if(actual->status == Status::leaf_mbb){
-
-                    if(pq.size() < n){
-
-                        pq.push({source->getDistanceTo(c->obj),c});
-                    }else{
-                        auto [Dk,peor] = pq.top();
-
-
-                        if(Dk + c->obj->getDistanceTo(mp) > source->getDistanceTo(mp)){
-                            pq.pop();
-                            pq.push({source->getDistanceTo(c->obj),c});
-                        }
-
-                    }
-                }else{
-
-                    if(pq.size() <  n){
-                        s.push(c);
-                    }
-                    else{
-
-                        auto [Dk,peor] = pq.top();
-                        int vx = (actual->obj->getHighX() - actual->obj->getLowX());
-                        int vy = (actual->obj->getHighY() - actual->obj->getLowY());
-                        int r = sqrt(vx*vx + vy*vy)/2;
-
-                        if(Dk + r > source->getDistanceTo(mp)){
-
-                            s.push(c);
-                        }     
-                    } 
-                }
-
-                delete mp;
-
-            }
-
+    void coeficienteSolapamiento(){
+        int level = 0;
+        Node* temp = root;
+        while (temp->status != Status::leaf_mbb) {
+            level++;
+            temp = temp->children[0];
         }
 
-        vector<Node*> result;
-
-        while(!pq.empty()){
-            result.push_back(pq.top().second);
-            pq.pop();
+        std::vector<vector<SpatialObj*>> allMBBs(level);
+        root->getMBBs(allMBBs, 0);
+        //cout << "\nga: " << allMBBs.size() << '\n';
+        double tot = 0.0;
+        for (auto l_mbbs: allMBBs) {
+            tot += getUnion_intersection(l_mbbs);
         }
+        std::cout << "\nEl Porcentaje de overlap es: " << tot/level << std::endl;
 
-	return vector<Node*>{};
+        // if(allMBBs.size()>0)
+        //   std::cout << "\nEl Porcentaje de overlap es: " << getUnion_intersection(allMBBs) << std::endl;
+    }
 
-   }
 
-
+  
 };
